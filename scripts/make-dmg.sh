@@ -77,7 +77,7 @@ if command -v create-dmg >/dev/null 2>&1; then
     --hide-extension "${APP_NAME}.app" \
     --app-drop-link 450 180 \
     --no-internet-enable \
-    "${CDG_BG_ARG[@]+"${CDG_BG_ARG[@]}"}" \
+    "${CDG_BG_ARG[@]}" \
     "${DMG_PATH}" \
     "${CDG_STAGE}"
   CDG_EXIT=$?
