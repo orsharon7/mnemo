@@ -1,0 +1,21 @@
+# Build artifacts
+build/
+*.o
+*.swiftmodule
+*.swiftdoc
+*.dSYM/
+
+# macOS
+.DS_Store
+._*
+
+# Editor / tooling
+*.swp
+*.swo
+.vscode/
+.idea/
+*.xcodeproj/xcuserdata/
+*.xcworkspace/xcuserdata/
+
+# Local-only artifacts (clipboard history is user data and lives in ~/Library)
+*.log
