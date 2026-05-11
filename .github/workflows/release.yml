@@ -1,9 +1,9 @@
 name: Release
 
 # Cuts a GitHub Release whenever a v* tag is pushed.
-# Builds Mnemo.app via the existing Makefile, packages it into a DMG
-# (preferring create-dmg, with an hdiutil fallback), and uploads the
-# DMG as a release asset.
+# Builds Mnemo.app via the existing Makefile (ad-hoc signed), packages it
+# into a DMG (preferring create-dmg, with an hdiutil fallback), and uploads
+# the DMG as a release asset.
 
 on:
   push:
@@ -42,9 +42,8 @@ jobs:
         id: changelog
         run: |
           VERSION="${{ steps.tag.outputs.name }}"
-          # Strip leading 'v' to match CHANGELOG headings like [0.5.0]
           VERSION_BARE="${VERSION#v}"
-          NOTES=$(awk "/^## \[${VERSION_BARE}\]/{found=1; next} found && /^## \[/{exit} found{print}" CHANGELOG.md)
+          NOTES=$(awk -v ver="## [${VERSION_BARE}]" 'index($0,ver)==1{found=1;next} found && /^## \[/{exit} found{print}' CHANGELOG.md)
           if [[ -z "${NOTES}" ]]; then
             NOTES="See CHANGELOG.md for details."
           fi
