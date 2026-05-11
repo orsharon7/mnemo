@@ -94,3 +94,7 @@ See the Obsidian vault `07 - Backlog & Roadmap.md`. Next up:
 - Migrate persistence to SQLite + FTS5 once entries grow
 - Notarized DMG + Homebrew cask
 - iCloud sync (opt-in, end-to-end encrypted)
+
+## License
+
+Mnemo is released under the [MIT License](LICENSE).
