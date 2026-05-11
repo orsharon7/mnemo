@@ -40,6 +40,7 @@ Project instructions for AI coding agents.
 - Never overwrite an existing `EXIT` trap with a new one; consolidate all cleanup into a single trap (guarding each variable with `${VAR:-}`) or accumulate cleanup commands without replacing prior traps.
 - Never interpolate unescaped version strings or variable values directly into awk/grep regex patterns; escape regex metacharacters or use fixed-string comparison (`-F` / `index()`) to avoid unintended matches.
 - When using `rm -rf` with variables in traps, guard each removal with a non-empty check (e.g. `[ -n "${VAR:-}" ] && rm -rf -- "$VAR"`) so cleanup is silent and safe when a variable was never set.
+- Never use `${array+word}` to guard optional array arguments; an empty array (`arr=()`) is still considered "set" and will expand to an unwanted empty-string argument — check array length instead (e.g. `[ ${#ARR[@]} -gt 0 ]`) before splicing the array into a command.
 
 ### CI & Release Correctness
 - When a workflow or PR claims to build, sign, and notarize a release, ensure all three steps are present (`codesign` with a Developer ID identity, `xcrun notarytool submit --wait`, and `xcrun stapler staple`); do not mark notarization requirements as closed without the actual steps in place.
