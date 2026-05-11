@@ -17,6 +17,14 @@ APP_NAME="Mnemo"
 APP_BUNDLE="build/${APP_NAME}.app"
 VERSION="${1:-}"
 
+# Validate VERSION to prevent path traversal: reject '/' and '..'
+if [[ -n "${VERSION}" ]]; then
+  if [[ "${VERSION}" == *"/"* || "${VERSION}" == *".."* ]]; then
+    echo "error: VERSION '${VERSION}' contains disallowed characters ('/' or '..'); aborting." >&2
+    exit 1
+  fi
+fi
+
 if [[ ! -d "${APP_BUNDLE}" ]]; then
   echo "error: ${APP_BUNDLE} not found — run 'make' first." >&2
   exit 1
@@ -55,6 +63,11 @@ if command -v create-dmg >/dev/null 2>&1; then
   # real failure — log it and fall through to the hdiutil path.
   # Temporarily disable -e so we can inspect the exit code ourselves.
   set +e
+  SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+  DMG_BG="${SCRIPT_DIR}/dmg-background.png"
+  CDG_BG_ARG=()
+  [[ -f "${DMG_BG}" ]] && CDG_BG_ARG=(--background "${DMG_BG}")
+
   create-dmg \
     --volname "${APP_NAME}" \
     --window-pos 200 120 \
@@ -64,6 +77,7 @@ if command -v create-dmg >/dev/null 2>&1; then
     --hide-extension "${APP_NAME}.app" \
     --app-drop-link 450 180 \
     --no-internet-enable \
+    "${CDG_BG_ARG[@]+"${CDG_BG_ARG[@]}"}" \
     "${DMG_PATH}" \
     "${CDG_STAGE}"
   CDG_EXIT=$?
