@@ -27,7 +27,7 @@ SWIFTC_FLAGS := \
 	-framework Combine \
 	-framework Carbon
 
-.PHONY: all run install clean codesign dirs
+.PHONY: all run install clean codesign dirs dmg
 
 all: dirs $(BIN) $(CONTENTS)/Info.plist
 	@echo "→ Built $(APP_BUNDLE)"
@@ -58,3 +58,7 @@ install: all
 
 clean:
 	rm -rf $(BUILD_DIR)
+
+dmg: all
+	@echo "→ Building DMG…"
+	@bash scripts/make-dmg.sh

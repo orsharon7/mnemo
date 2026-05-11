@@ -35,7 +35,10 @@ rm -f "${DMG_PATH}"
 # Single EXIT trap cleans up both possible stage dirs (guarded with :-).
 CDG_STAGE=""
 STAGE_DIR=""
-cleanup() { rm -rf "${CDG_STAGE:-}" "${STAGE_DIR:-}"; }
+cleanup() {
+  [[ -n "${CDG_STAGE:-}" ]] && rm -rf -- "${CDG_STAGE}"
+  [[ -n "${STAGE_DIR:-}"  ]] && rm -rf -- "${STAGE_DIR}"
+}
 trap cleanup EXIT
 
 if command -v create-dmg >/dev/null 2>&1; then
