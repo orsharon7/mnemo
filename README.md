@@ -22,6 +22,7 @@ P0 stories implemented & verified:
 P1 stories shipped:
 
 - ✅ US-10 Honor `org.nspasteboard.ConcealedType` **+ heuristic secret blocker** (prefixes + Shannon entropy)
+- ✅ **Per-app exclusion list** — skip clipboard capture when the frontmost app's bundle ID is on the exclusion list (Preferences → Excluded Apps)
 - ✅ US-11 Launch at login (`SMAppService.mainApp`)
 - ✅ US-12 Preferences window — configurable hotkey, retention, auto-paste, launch-at-login, secret-blocker toggle, **semantic-search toggle**
 - ✅ Auto-paste via synthetic ⌘V (opt-in, gated on Accessibility)

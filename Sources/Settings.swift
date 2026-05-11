@@ -36,6 +36,9 @@ final class Settings: ObservableObject {
     @Published var semanticSearchEnabled: Bool {
         didSet { defaults.set(semanticSearchEnabled, forKey: Keys.semanticSearch) }
     }
+    @Published var excludedBundleIDs: [String] {
+        didSet { defaults.set(excludedBundleIDs, forKey: Keys.excludedBundleIDs) }
+    }
 
     private init() {
         let keyCode = UInt32(defaults.object(forKey: Keys.hotkeyKeyCode) as? Int ?? kVK_ANSI_V)
@@ -49,6 +52,7 @@ final class Settings: ObservableObject {
         self.blockLikelySecrets = defaults.object(forKey: Keys.blockSecrets) as? Bool ?? true
         self.hasCompletedOnboarding = defaults.object(forKey: Keys.onboarded) as? Bool ?? false
         self.semanticSearchEnabled = defaults.object(forKey: Keys.semanticSearch) as? Bool ?? true
+        self.excludedBundleIDs = defaults.stringArray(forKey: Keys.excludedBundleIDs) ?? []
     }
 
     private func persistHotkey() {
@@ -66,6 +70,7 @@ final class Settings: ObservableObject {
         static let blockSecrets = "blockLikelySecrets"
         static let onboarded = "hasCompletedOnboarding"
         static let semanticSearch = "semanticSearchEnabled"
+        static let excludedBundleIDs = "excludedBundleIDs"
     }
 }
 

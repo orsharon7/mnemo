@@ -50,6 +50,10 @@ final class ClipboardWatcher {
         }
 
         let frontApp = NSWorkspace.shared.frontmostApplication
+        if let bundleID = frontApp?.bundleIdentifier,
+           Settings.shared.excludedBundleIDs.contains(bundleID) {
+            return
+        }
         store.add(text: text,
                   sourceBundle: frontApp?.bundleIdentifier,
                   sourceName: frontApp?.localizedName)
