@@ -1,9 +1,9 @@
-# ClipMate
+# Mnemo
 
 A tiny native macOS clipboard history manager. Lives in the menu bar, captures every copy in the background, and lets you summon a search-and-paste panel with a global hotkey — the Alfred clipboard experience as a standalone, local-only app.
 
 > Full product definition (Problem Framing, JTBD, User Stories, PRD, Architecture, Decisions Log)
-> lives in the Obsidian vault at `~/Documents/Obsidian Vault/ClipMate/`.
+> lives in the Obsidian vault at `~/Documents/Obsidian Vault/Mnemo/`.
 
 ## Status — v0.4 (On-device semantic search)
 
@@ -15,7 +15,7 @@ P0 stories implemented & verified:
 - ✅ US-4 Substring + **on-device semantic** search + subsequence fuzzy fallback (hybrid)
 - ✅ US-5 Enter to copy + dismiss + refocus previous app
 - ✅ US-6 ↑↓ navigate, ⌘1–9 quick pick, Esc to dismiss
-- ✅ US-7 Persistent history (`~/Library/Application Support/ClipMate/history.json`, mode 0600)
+- ✅ US-7 Persistent history (`~/Library/Application Support/Mnemo/history.json`, mode 0600)
 - ✅ US-8 Pause Capture (menu bar)
 - ✅ US-9 Clear History (menu bar) — pinned entries survive
 
@@ -39,14 +39,14 @@ P2 (v0.4):
 
 ## Permissions
 
-ClipMate runs with **zero permissions** by default. The only optional permission is **Accessibility**, and only if you turn on _Auto-paste on Enter_ in Preferences. Without it you simply press ⌘V yourself after Enter.
+Mnemo runs with **zero permissions** by default. The only optional permission is **Accessibility**, and only if you turn on _Auto-paste on Enter_ in Preferences. Without it you simply press ⌘V yourself after Enter.
 
 ## Build & run
 
 Requires macOS 14+ and Command Line Tools (`xcode-select --install`). Full Xcode is **not** required.
 
 ```bash
-cd ~/Repos/ClipMate
+cd ~/Repos/Mnemo
 make run             # build and launch
 make install         # build and copy to /Applications
 make clean
@@ -71,7 +71,7 @@ First launch puts an icon in the menu bar. Press **⌥⌘V** anywhere to open th
 ## Privacy
 
 - 100% local. Zero network calls.
-- History at `~/Library/Application Support/ClipMate/history.json`, mode `0600`.
+- History at `~/Library/Application Support/Mnemo/history.json`, mode `0600`.
 - **Pause Capture** stops writes until you resume.
 - **Clear History…** wipes everything *except pinned entries* (pinned snippets are explicit choices).
 - Copies marked as concealed by password managers (1Password, Bitwarden, …) are skipped automatically.

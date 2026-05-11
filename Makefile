@@ -1,11 +1,11 @@
-# ClipMate — Makefile-driven build (Command Line Tools only; no Xcode needed).
+# Mnemo — Makefile-driven build (Command Line Tools only; no Xcode needed).
 #
-#   make           # build ClipMate.app into build/
+#   make           # build Mnemo.app into build/
 #   make run       # build + launch
 #   make install   # build + copy to /Applications
 #   make clean
 
-APP_NAME := ClipMate
+APP_NAME := Mnemo
 BUILD_DIR := build
 APP_BUNDLE := $(BUILD_DIR)/$(APP_NAME).app
 CONTENTS := $(APP_BUNDLE)/Contents

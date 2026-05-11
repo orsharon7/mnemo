@@ -62,13 +62,13 @@ final class HistoryStore: ObservableObject {
     private var retentionDays: Int = defaultRetentionDays
 
     private let dbURL: URL
-    private let queue = DispatchQueue(label: "clipmate.store", qos: .utility)
+    private let queue = DispatchQueue(label: "mnemo.store", qos: .utility)
     private var settingsObservers: [NSObjectProtocol] = []
 
     init() {
         let support = FileManager.default.urls(for: .applicationSupportDirectory,
                                                in: .userDomainMask).first!
-        let dir = support.appendingPathComponent("ClipMate", isDirectory: true)
+        let dir = support.appendingPathComponent("Mnemo", isDirectory: true)
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true,
                                                  attributes: [.posixPermissions: 0o700])
         self.dbURL = dir.appendingPathComponent("history.json")
@@ -291,7 +291,7 @@ final class HistoryStore: ObservableObject {
                 try? FileManager.default.setAttributes([.posixPermissions: 0o600],
                                                        ofItemAtPath: url.path)
             } catch {
-                NSLog("ClipMate persist error: \(error)")
+                NSLog("Mnemo persist error: \(error)")
             }
         }
     }

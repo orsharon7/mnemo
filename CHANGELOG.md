@@ -1,6 +1,14 @@
 # Changelog
 
-All notable changes to ClipMate. Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
+All notable changes to Mnemo. Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
+
+## [0.5.0] — 2026-05-11
+
+### Changed
+- **Rebrand**: `ClipMate` → `Mnemo` (from Mnemosyne, Greek goddess of memory).
+  Bundle ID, executable, display name, Application Support directory, internal
+  notification names, and Obsidian vault folder all renamed. User data (history,
+  pinned entries, embeddings, preferences) migrated automatically.
 
 ## [0.4.0] — 2026-05-11
 
@@ -22,7 +30,7 @@ All notable changes to ClipMate. Format loosely follows [Keep a Changelog](https
 - Arrow keys, Esc, Return and the new ⌘P / Space / ⌘⌫ shortcuts were silently
   dead inside the search panel. Root cause: NSTextField's embedded field editor
   (NSText) consumes `keyDown` before reaching subclass overrides. Replaced the
-  `ClipMateSearchField` subclass with a window-scoped
+  `MnemoSearchField` subclass with a window-scoped
   `NSEvent.addLocalMonitorForEvents` installed by the SearchField Coordinator,
   gated on `field.window?.isKeyWindow`.
 
@@ -45,7 +53,7 @@ All notable changes to ClipMate. Format loosely follows [Keep a Changelog](https
 ## [0.2.0] — 2026-05-11
 
 ### Added
-- Persistent history at `~/Library/Application Support/ClipMate/history.json`
+- Persistent history at `~/Library/Application Support/Mnemo/history.json`
   (mode 0600, dir 0700) with retention by count and age.
 - Configurable global hotkey, configurable auto-paste-on-Enter, launch-at-login
   via `SMAppService`.

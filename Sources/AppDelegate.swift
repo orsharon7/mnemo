@@ -56,7 +56,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         })
         let host = NSHostingController(rootView: view)
         let w = NSWindow(contentViewController: host)
-        w.title = "Welcome to ClipMate"
+        w.title = "Welcome to Mnemo"
         w.styleMask = [.titled, .closable]
         w.isReleasedWhenClosed = false
         w.level = .floating
@@ -78,7 +78,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
         if let button = statusItem.button {
             button.image = NSImage(systemSymbolName: "doc.on.clipboard",
-                                   accessibilityDescription: "ClipMate")
+                                   accessibilityDescription: "Mnemo")
             button.image?.isTemplate = true
         }
 
@@ -112,13 +112,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         prefs.target = self
         menu.addItem(prefs)
 
-        let about = NSMenuItem(title: "About ClipMate",
+        let about = NSMenuItem(title: "About Mnemo",
                                action: #selector(showAbout),
                                keyEquivalent: "")
         about.target = self
         menu.addItem(about)
 
-        menu.addItem(NSMenuItem(title: "Quit ClipMate",
+        menu.addItem(NSMenuItem(title: "Quit Mnemo",
                                 action: #selector(NSApplication.terminate(_:)),
                                 keyEquivalent: "q"))
 
@@ -128,7 +128,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private func updateStatusIcon() {
         guard let button = statusItem.button else { return }
         let symbol = store.captureEnabled ? "doc.on.clipboard" : "doc.on.clipboard.fill"
-        button.image = NSImage(systemSymbolName: symbol, accessibilityDescription: "ClipMate")
+        button.image = NSImage(systemSymbolName: symbol, accessibilityDescription: "Mnemo")
         button.image?.isTemplate = true
         button.appearsDisabled = !store.captureEnabled
     }
@@ -165,7 +165,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     @objc private func showAbout() {
         NSApp.activate(ignoringOtherApps: true)
         let alert = NSAlert()
-        alert.messageText = "ClipMate"
+        alert.messageText = "Mnemo"
         alert.informativeText = "A tiny local clipboard history for macOS.\n\nHotkey: \(settings.hotkey.displayString)\nHistory is stored locally, never uploaded."
         alert.runModal()
     }
@@ -178,7 +178,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
         let host = NSHostingController(rootView: PreferencesView())
         let window = NSWindow(contentViewController: host)
-        window.title = "ClipMate Preferences"
+        window.title = "Mnemo Preferences"
         window.styleMask = [.titled, .closable, .miniaturizable]
         window.isReleasedWhenClosed = false
         window.center()

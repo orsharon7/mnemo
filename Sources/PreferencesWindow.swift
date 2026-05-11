@@ -34,7 +34,7 @@ struct PreferencesView: View {
                     HStack(spacing: 8) {
                         Image(systemName: "exclamationmark.triangle.fill")
                             .foregroundStyle(.yellow)
-                        Text("ClipMate needs Accessibility permission to auto-paste.")
+                        Text("Mnemo needs Accessibility permission to auto-paste.")
                             .font(.callout)
                         Button("Grant…") {
                             Paster.promptForAccessibility()
@@ -73,7 +73,7 @@ struct PreferencesView: View {
             Section {
                 HStack {
                     Spacer()
-                    Text("ClipMate v0.4.0 — local clipboard history. No cloud, ever.")
+                    Text("Mnemo v0.4.0 — local clipboard history. No cloud, ever.")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                     Spacer()
@@ -178,5 +178,5 @@ final class RecorderField: NSView {
 }
 
 extension Notification.Name {
-    static let clipMateHotkeyChanged = Notification.Name("ClipMateHotkeyChanged")
+    static let clipMateHotkeyChanged = Notification.Name("MnemoHotkeyChanged")
 }

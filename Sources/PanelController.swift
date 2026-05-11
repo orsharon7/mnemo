@@ -49,7 +49,7 @@ final class PanelController {
 
     private func makePanel() -> NSPanel {
         let contentRect = NSRect(x: 0, y: 0, width: 640, height: 420)
-        let panel = ClipMatePanel(
+        let panel = MnemoPanel(
             contentRect: contentRect,
             styleMask: [.titled, .fullSizeContentView, .nonactivatingPanel],
             backing: .buffered,
@@ -95,11 +95,11 @@ final class PanelController {
     }
 }
 
-final class ClipMatePanel: NSPanel {
+final class MnemoPanel: NSPanel {
     override var canBecomeKey: Bool { true }
     override var canBecomeMain: Bool { false }
 }
 
 extension Notification.Name {
-    static let clipMatePanelOpened = Notification.Name("ClipMatePanelOpened")
+    static let clipMatePanelOpened = Notification.Name("MnemoPanelOpened")
 }

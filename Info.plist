@@ -3,11 +3,11 @@
 <plist version="1.0">
 <dict>
     <key>CFBundleName</key>
-    <string>ClipMate</string>
+    <string>Mnemo</string>
     <key>CFBundleDisplayName</key>
-    <string>ClipMate</string>
+    <string>Mnemo</string>
     <key>CFBundleIdentifier</key>
-    <string>com.orsharon.clipmate</string>
+    <string>com.orsharon.mnemo</string>
     <key>CFBundleVersion</key>
     <string>0.4.0</string>
     <key>CFBundleShortVersionString</key>
@@ -15,7 +15,7 @@
     <key>CFBundlePackageType</key>
     <string>APPL</string>
     <key>CFBundleExecutable</key>
-    <string>ClipMate</string>
+    <string>Mnemo</string>
     <key>CFBundleInfoDictionaryVersion</key>
     <string>6.0</string>
     <key>LSMinimumSystemVersion</key>

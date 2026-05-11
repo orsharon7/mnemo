@@ -8,7 +8,7 @@ final class Embedder {
     static let shared = Embedder()
 
     private let embedding: NLEmbedding?
-    private let queue = DispatchQueue(label: "clipmate.embedder", qos: .utility)
+    private let queue = DispatchQueue(label: "mnemo.embedder", qos: .utility)
 
     /// Cap input length to keep embedding latency tight and avoid wasting tokens on huge clips.
     private let maxChars = 2000

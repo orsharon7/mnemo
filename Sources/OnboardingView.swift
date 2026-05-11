@@ -11,7 +11,7 @@ struct OnboardingView: View {
                     .font(.system(size: 36))
                     .foregroundStyle(Color.accentColor)
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("ClipMate is running")
+                    Text("Mnemo is running")
                         .font(.title2.bold())
                     Text("Your clipboard now has a memory.")
                         .foregroundStyle(.secondary)

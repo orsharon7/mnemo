@@ -24,7 +24,7 @@ enum LoginItem {
                 }
             }
         } catch {
-            NSLog("ClipMate LoginItem error: \(error)")
+            NSLog("Mnemo LoginItem error: \(error)")
         }
     }
 }

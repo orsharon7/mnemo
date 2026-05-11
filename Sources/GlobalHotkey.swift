@@ -41,7 +41,7 @@ final class GlobalHotkey {
                                          0,
                                          &hotKeyRef)
         if status != noErr {
-            NSLog("ClipMate: hotkey register failed status=\(status)")
+            NSLog("Mnemo: hotkey register failed status=\(status)")
             return nil
         }
         GlobalHotkey.handlers[id] = handler

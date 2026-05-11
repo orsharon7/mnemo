@@ -8,7 +8,7 @@ enum Paster {
     }
 
     /// Prompts the user (one-time per app launch). After clicking Allow in System Settings
-    /// they typically need to relaunch ClipMate for the new trust to take effect.
+    /// they typically need to relaunch Mnemo for the new trust to take effect.
     @discardableResult
     static func promptForAccessibility() -> Bool {
         let key = "AXTrustedCheckOptionPrompt" as CFString
