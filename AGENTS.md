@@ -32,6 +32,9 @@ Project instructions for AI coding agents.
 ### Packaging & Build Scripts
 - When creating a DMG with `create-dmg`, stage the `.app` bundle and an `/Applications` symlink in a temporary directory and pass that directory as the source, so the expected file layout is present at the root.
 
+### Security & Input Validation
+- When external values (e.g. git tags, CLI arguments) are used to construct file paths or passed to destructive commands (`rm`, `mv`), validate them first: reject strings containing `/`, `..`, or other path metacharacters, or map disallowed characters to a safe substitute (e.g. `-`) before use.
+
 ### Shell Scripting & Error Handling
 - When using `set -e`, wrap any command whose non-zero exit code needs to be inspected or handled (e.g. fallback logic) in an `if/else` block or temporarily disable `-e` around it, so the script doesn't exit before the exit code can be acted upon.
 - Never overwrite an existing `EXIT` trap with a new one; consolidate all cleanup into a single trap (guarding each variable with `${VAR:-}`) or accumulate cleanup commands without replacing prior traps.
