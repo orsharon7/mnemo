@@ -1,0 +1,47 @@
+name: Release
+
+# Cuts a GitHub Release whenever a v* tag is pushed.
+# Builds Mnemo.app via the existing Makefile, packages it into a DMG
+# (preferring create-dmg, with an hdiutil fallback), and uploads the
+# DMG as a release asset.
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Build and publish DMG
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Resolve tag
+        id: tag
+        run: echo "name=${GITHUB_REF_NAME}" >> "${GITHUB_OUTPUT}"
+
+      - name: Install create-dmg
+        run: brew install create-dmg
+
+      - name: Build Mnemo.app
+        run: make
+
+      - name: Package DMG
+        run: scripts/make-dmg.sh "${{ steps.tag.outputs.name }}"
+
+      - name: Verify DMG exists
+        run: ls -lh "build/Mnemo-${{ steps.tag.outputs.name }}.dmg"
+
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.tag.outputs.name }}
+          name: Mnemo ${{ steps.tag.outputs.name }}
+          generate_release_notes: true
+          files: build/Mnemo-${{ steps.tag.outputs.name }}.dmg

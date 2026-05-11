@@ -83,6 +83,26 @@ First launch puts an icon in the menu bar. Press **⌥⌘V** anywhere to open th
 - Up to 1 MB per entry — longer is truncated and flagged.
 - 30-day retention (soft — applied once cap exceeded).
 
+## Releases
+
+Releases are built and published automatically by GitHub Actions whenever a `v*` tag is pushed.
+
+To cut a new release:
+
+```bash
+git tag v0.5.0
+git push origin v0.5.0
+```
+
+The [`Release` workflow](.github/workflows/release.yml) runs on `macos-latest`, builds `build/Mnemo.app` via `make`, packages it into `Mnemo-vX.Y.Z.dmg` using [`create-dmg`](https://github.com/create-dmg/create-dmg) (with an `hdiutil` fallback), and attaches the DMG to a freshly-created GitHub Release for the tag.
+
+To build a DMG locally for testing:
+
+```bash
+make
+scripts/make-dmg.sh v0.5.0   # → build/Mnemo-v0.5.0.dmg
+```
+
 ## Roadmap
 
 See the Obsidian vault `07 - Backlog & Roadmap.md`. Next up:
