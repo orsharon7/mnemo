@@ -34,8 +34,17 @@ rm -f "${DMG_PATH}"
 
 if command -v create-dmg >/dev/null 2>&1; then
   echo "→ Packaging ${DMG_NAME} with create-dmg…"
+  # create-dmg requires the source to be a *directory* containing the .app,
+  # not the .app bundle itself, so that --icon / --hide-extension can locate
+  # "${APP_NAME}.app" inside the source folder.
+  CDG_STAGE="$(mktemp -d)"
+  trap 'rm -rf "${CDG_STAGE}"' EXIT
+  cp -R "${APP_BUNDLE}" "${CDG_STAGE}/"
+  ln -s /Applications "${CDG_STAGE}/Applications"
+
   # create-dmg exits 2 when it cannot codesign the DMG itself; that is
-  # fine for an unsigned distribution build.
+  # fine for an unsigned distribution build.  Any other non-zero exit is a
+  # real failure — log it and fall through to the hdiutil path.
   create-dmg \
     --volname "${APP_NAME}" \
     --window-pos 200 120 \
@@ -46,10 +55,13 @@ if command -v create-dmg >/dev/null 2>&1; then
     --app-drop-link 450 180 \
     --no-internet-enable \
     "${DMG_PATH}" \
-    "${APP_BUNDLE}" \
-  || true
-  if [[ ! -f "${DMG_PATH}" ]]; then
-    echo "warning: create-dmg did not produce ${DMG_PATH}; falling back to hdiutil." >&2
+    "${CDG_STAGE}" \
+  ; CDG_EXIT=$?
+  if [[ ${CDG_EXIT} -eq 2 ]]; then
+    echo "note: create-dmg exited 2 (codesign not available) — DMG is still usable." >&2
+  elif [[ ${CDG_EXIT} -ne 0 ]]; then
+    echo "warning: create-dmg failed (exit ${CDG_EXIT}); falling back to hdiutil." >&2
+    rm -f "${DMG_PATH}"
   fi
 fi
 

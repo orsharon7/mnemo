@@ -27,7 +27,7 @@ jobs:
         run: echo "name=${GITHUB_REF_NAME}" >> "${GITHUB_OUTPUT}"
 
       - name: Install create-dmg
-        run: brew install create-dmg
+        run: brew install create-dmg || true
 
       - name: Build Mnemo.app
         run: make
@@ -38,10 +38,26 @@ jobs:
       - name: Verify DMG exists
         run: ls -lh "build/Mnemo-${{ steps.tag.outputs.name }}.dmg"
 
+      - name: Extract release notes from CHANGELOG
+        id: changelog
+        run: |
+          VERSION="${{ steps.tag.outputs.name }}"
+          # Strip leading 'v' to match CHANGELOG headings like [0.5.0]
+          VERSION_BARE="${VERSION#v}"
+          NOTES=$(awk "/^## \[${VERSION_BARE}\]/{found=1; next} found && /^## \[/{exit} found{print}" CHANGELOG.md)
+          if [[ -z "${NOTES}" ]]; then
+            NOTES="See CHANGELOG.md for details."
+          fi
+          {
+            echo "notes<<EOF"
+            echo "${NOTES}"
+            echo "EOF"
+          } >> "${GITHUB_OUTPUT}"
+
       - name: Publish GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.tag.outputs.name }}
           name: Mnemo ${{ steps.tag.outputs.name }}
-          generate_release_notes: true
+          body: ${{ steps.changelog.outputs.notes }}
           files: build/Mnemo-${{ steps.tag.outputs.name }}.dmg
