@@ -18,7 +18,8 @@ FRAMEWORKS_DIR="Frameworks"
 SPARKLE_FRAMEWORK="${FRAMEWORKS_DIR}/Sparkle.framework"
 
 # Pinned SHA256 for Sparkle 2.9.1 tarball — update when bumping VERSION.
-EXPECTED_SHA256="c0dde519fd2a43ddfc6a1eb76aec284d7d888fe281414f9177de3164d98ba4c7"
+# Override with SPARKLE_SHA256 when also overriding SPARKLE_VERSION.
+EXPECTED_SHA256="${SPARKLE_SHA256:-c0dde519fd2a43ddfc6a1eb76aec284d7d888fe281414f9177de3164d98ba4c7}"
 
 if [[ -d "${SPARKLE_FRAMEWORK}" ]]; then
   echo "→ Sparkle.framework already present at ${SPARKLE_FRAMEWORK}"

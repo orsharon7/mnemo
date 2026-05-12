@@ -1,4 +1,3 @@
-import AppKit
 import Sparkle
 
 /// Thin wrapper around `SPUStandardUpdaterController` so AppDelegate stays tidy.

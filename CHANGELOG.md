@@ -12,7 +12,8 @@ All notable changes to Mnemo. Format loosely follows [Keep a Changelog](https://
 - "Check for Updates…" menu item in the status-bar menu.
 - App icon (`icon.png` → `Resources/AppIcon.icns`) now ships in the bundle.
 - GitHub Pages workflow (`pages.yml`) publishes the marketing site +
-  `appcast.xml` from `/site` on every push to `dev`.
+  `appcast.xml` from `/site` on pushes to `dev` that change files under
+  `site/` (or the workflow file itself).
 
 ### Changed
 - `release.yml` (CI) now fetches the Sparkle framework, signs the DMG with
