@@ -71,6 +71,13 @@ Project instructions for AI coding agents.
 
 ### CI & Git Branch Operations
 - When a CI workflow generates or modifies files and then switches branches, always perform the branch checkout first and generate/modify files afterward (or use a temp path and copy post-checkout); generating files before `git checkout` risks "untracked/modified working tree file would be overwritten" errors on subsequent runs.
+- Before switching branches in CI (or any script), always reset the working tree (`git reset --hard` or `git checkout -- <file>`) to prevent "local modifications would be overwritten" failures when the modified file is tracked in the target branch.
+
+### Swift & Objective-C Interop
+- When a Swift class is used as an `NSMenuItem` target or referenced via `#selector`, ensure it inherits from `NSObject`; without `NSObject` inheritance the selector is not reliably exposed to the Objective-C runtime and will fail at runtime.
+
+### Makefile & Parallel Builds
+- When Makefile targets write into directories created by a phony prerequisite (e.g. `dirs`), add order-only prerequisites (`$(TARGET): | dirs`) to every such target so parallel builds (`make -j`) do not race against directory creation.
 
 <!-- END:COPILOT-RULES -->
 
