@@ -13,7 +13,9 @@ private final class AppIconCache {
         c.countLimit = 128
         return c
     }()
-    private var misses: Set<String> = []
+    private var missesQueue: [String] = []
+    private var missesSet: Set<String> = []
+    private let missesLimit = 256
 
     private init() {}
 
@@ -21,7 +23,7 @@ private final class AppIconCache {
         if let cached = cache.object(forKey: bundleID as NSString) {
             return cached
         }
-        if misses.contains(bundleID) {
+        if missesSet.contains(bundleID) {
             return nil
         }
 
@@ -35,7 +37,12 @@ private final class AppIconCache {
         if let img = img {
             cache.setObject(img, forKey: bundleID as NSString)
         } else {
-            misses.insert(bundleID)
+            if missesQueue.count >= missesLimit {
+                let evicted = missesQueue.removeFirst()
+                missesSet.remove(evicted)
+            }
+            missesQueue.append(bundleID)
+            missesSet.insert(bundleID)
         }
         return img
     }
