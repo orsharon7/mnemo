@@ -79,7 +79,7 @@ final class PanelController {
             self?.commit(entry: entry)
         }, onDismiss: { [weak self] in
             self?.hide()
-        }, onExcludeApp: { bundleID, _ in
+        }, onExcludeApp: { bundleID in
             var ids = Settings.shared.excludedBundleIDs
             if !ids.contains(bundleID) { ids.append(bundleID) }
             Settings.shared.excludedBundleIDs = ids

@@ -56,7 +56,7 @@ struct PreferencesView: View {
             }
 
             Section("Excluded Apps") {
-                Text("Clipboard changes coming from these apps are ignored.")
+                Text("Clipboard changes are not captured when one of these apps is frontmost.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
                 List(selection: $selectedExcludedBundleID) {
