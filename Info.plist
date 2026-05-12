@@ -9,13 +9,17 @@
     <key>CFBundleIdentifier</key>
     <string>com.orsharon.mnemo</string>
     <key>CFBundleVersion</key>
-    <string>0.4.0</string>
+    <string>0.6.0</string>
     <key>CFBundleShortVersionString</key>
-    <string>0.4.0</string>
+    <string>0.6.0</string>
     <key>CFBundlePackageType</key>
     <string>APPL</string>
     <key>CFBundleExecutable</key>
     <string>Mnemo</string>
+    <key>CFBundleIconFile</key>
+    <string>AppIcon</string>
+    <key>CFBundleIconName</key>
+    <string>AppIcon</string>
     <key>CFBundleInfoDictionaryVersion</key>
     <string>6.0</string>
     <key>LSMinimumSystemVersion</key>
@@ -28,5 +32,13 @@
     <false/>
     <key>NSSupportsSuddenTermination</key>
     <false/>
+    <key>SUFeedURL</key>
+    <string>https://orsharon7.github.io/mnemo/appcast.xml</string>
+    <key>SUPublicEDKey</key>
+    <string>gPSpByuLbXS1NUtKOaMczmJkrV+ztnn34Kz4oCRx9F4=</string>
+    <key>SUEnableAutomaticChecks</key>
+    <true/>
+    <key>SUScheduledCheckInterval</key>
+    <integer>86400</integer>
 </dict>
 </plist>
