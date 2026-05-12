@@ -5,7 +5,7 @@ Project instructions for AI coding agents.
 <!-- BEGIN:COPILOT-RULES -->
 ## Coding Guidelines (AI-maintained)
 *Auto-updated by pr-review-reflect — do not edit this section manually.*
-*Last updated: 2026-05-12 from PR #22 review*
+*Last updated: 2026-05-12 from PR #23 review*
 
 ### Performance & Web Vitals
 - Never apply `loading="lazy"` to above-the-fold images; use `fetchpriority="high"` for the primary hero asset to avoid LCP regressions.
@@ -28,6 +28,7 @@ Project instructions for AI coding agents.
 
 ### HTML & Navigation
 - Never use `href="#"` for navigation or brand links; link to a real destination (e.g. `/`, `index.html`, or a named anchor) to avoid dangling hash jumps.
+- When a site may be deployed at a subpath (e.g. GitHub Pages project sites), use relative links (`index.html` or `./`) instead of absolute root paths (`/`) so navigation works regardless of the hosting base path.
 
 ### Product Completeness
 - Before marking an issue as closed in a PR, verify every acceptance criterion from that issue is implemented (e.g. a required page, section, or link must exist, not just be planned).
