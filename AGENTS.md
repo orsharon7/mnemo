@@ -5,7 +5,7 @@ Project instructions for AI coding agents.
 <!-- BEGIN:COPILOT-RULES -->
 ## Coding Guidelines (AI-maintained)
 *Auto-updated by pr-review-reflect — do not edit this section manually.*
-*Last updated: 2026-05-12 from PR #23 review*
+*Last updated: 2026-05-12 from PR #30 review*
 
 ### Performance & Web Vitals
 - Never apply `loading="lazy"` to above-the-fold images; use `fetchpriority="high"` for the primary hero asset to avoid LCP regressions.
@@ -22,6 +22,7 @@ Project instructions for AI coding agents.
 - Never use inline styles in HTML for layout or theming; define CSS classes instead to ensure maintainability and consistent theming across pages.
 - Never include unused parameters in callback or closure signatures; simplify to only what callers and callees actually need to reduce coupling.
 - Ensure UI helper text, tooltips, and labels accurately describe the actual implemented behavior — not an idealized or broader behavior — to avoid misleading users about privacy or functionality guarantees.
+- Remove unused imports in all languages (Python, JS, etc.) to avoid dead code and linting failures.
 
 ### SwiftUI & Reactive State
 - When reading shared observable state (e.g. a singleton) inside a SwiftUI view body, always observe it via `@ObservedObject` or `@StateObject` so the view re-renders on changes; never access singleton state directly without observation.
@@ -55,6 +56,17 @@ Project instructions for AI coding agents.
 
 ### CI & Release Correctness
 - When a workflow or PR claims to build, sign, and notarize a release, ensure all three steps are present (`codesign` with a Developer ID identity, `xcrun notarytool submit --wait`, and `xcrun stapler staple`); do not mark notarization requirements as closed without the actual steps in place.
+- When a CI workflow uses a `paths` filter, ensure the documented trigger behavior matches the actual filter — if the intent is to deploy on every push, remove or widen the `paths` constraint.
+- In Makefiles, always perform codesign as the final step after all bundle mutations (resource copies, framework embedding, icon injection) are complete; signing before bundle mutations produces an invalid signature.
+
+### Security & Supply Chain
+- When a CI script downloads a remote tarball or binary and later executes it, always verify its integrity (pinned SHA256 checksum or published signature) before extraction or use to reduce supply-chain risk.
+
+### Data Serialization & XML
+- When inserting arbitrary text into XML CDATA sections, ensure the content cannot contain the CDATA terminator `]]>`; either escape/split the sequence or build the XML using a library that handles escaping automatically.
+
+### Shell Scripting & Output Parsing
+- When extracting a value with `sed` or `awk`, use a match-only mode (e.g. `sed -nE '...p'` or `grep -oE`) so unmatched input returns empty rather than the raw input line; then validate the extracted value (e.g. confirm it is numeric) before using it downstream.
 
 <!-- END:COPILOT-RULES -->
 
