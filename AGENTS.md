@@ -5,21 +5,21 @@ Project instructions for AI coding agents.
 <!-- BEGIN:COPILOT-RULES -->
 ## Coding Guidelines (AI-maintained)
 *Auto-updated by pr-review-reflect — do not edit this section manually.*
-*Last updated: 2026-05-13 from PR #35 review*
+*Last updated: 2026-05-13 from PR #35 review (optimized)*
 
 ### Frontend & CSS
 - Set `fetchpriority="high"` on the primary hero image; never `loading="lazy"` on above-the-fold images.
-- Add `@media (prefers-reduced-motion: reduce)` that disables `scroll-behavior: smooth` and reduces transitions/transforms.
-- Declare a solid-color or legacy fallback before any modern CSS (`color-mix()`, container queries, `:has()`); for gradient text using `-webkit-text-fill-color: transparent`, add a non-`color-mix()` fallback gradient first.
-- Use CSS classes for layout/theming; never inline styles. Remove unused custom properties.
+- Add `@media (prefers-reduced-motion: reduce)` disabling `scroll-behavior: smooth` and reducing transitions/transforms.
+- Declare a solid-color fallback before any modern CSS (`color-mix()`, container queries, `:has()`); for `-webkit-text-fill-color: transparent` gradient text, add a non-`color-mix()` fallback gradient first.
+- Use CSS classes for layout/theming; never inline styles; remove unused custom properties.
 - Never use `href="#"`; use relative links (`index.html`, `./`) for subpath-deployed sites.
 - Link download CTAs to `.../releases/latest/download/<asset>`, not an intermediate release page.
 
 ### Code Quality
 - Remove unused imports and unused callback/closure parameters.
 - Insert separators (`•`, `|`, `/`) only when both adjacent items are present.
-- Keep UI labels, tooltips, inline comments, and PR descriptions in sync with actual behavior in the same commit.
-- Write inline comments as complete sentences; remove stray words or fragments before committing.
+- Keep UI labels, tooltips, comments, and PR descriptions in sync with actual behavior in the same commit.
+- Write inline comments as complete sentences; remove stray fragments before committing.
 - Verify every acceptance criterion before closing a PR.
 
 ### Shell Scripting
@@ -33,34 +33,31 @@ Project instructions for AI coding agents.
 ### CI, Release & Build
 - Mark optional-tool install steps `continue-on-error: true`.
 - Use `paths` filters or `if` conditions instead of `[skip ci]` when downstream workflows must still run.
-- In branch-switching CI: checkout the branch first, then generate/modify files; `git reset --hard` before switching to avoid overwrite failures.
-- Verify cache hits include all required artifacts; confirm version-pinned downloads match via marker file or `FORCE=1` escape hatch.
+- In branch-switching CI: checkout the branch first, then generate/modify files; `git reset --hard` before switching.
+- Verify cache hits include all required artifacts; use a marker file or `FORCE=1` escape hatch for version-pinned downloads.
 - Verify downloaded tarballs/binaries with a pinned SHA256 checksum; expose a checksum override variable alongside version overrides.
 - Release order: `codesign` (Developer ID) → `xcrun notarytool submit --wait` → `xcrun stapler staple`.
-- **Makefile:** Codesign last — after all bundle mutations. Add order-only prerequisites (`$(TARGET): | dirs`) to prevent `make -j` races. Depend only on the real file target, not both a phony and real file. For `create-dmg`, stage `.app` and `/Applications` symlink in a temp dir.
+- **Makefile:** Codesign last — after all bundle mutations. Use order-only prerequisites (`$(TARGET): | dirs`) to prevent `make -j` races; depend only on the real file target. Stage `.app` and `/Applications` symlink in a temp dir for `create-dmg`.
 
 ### Swift
 - **Threading:** Annotate types/methods calling AppKit APIs (`NSWorkspace`, `NSImage`, etc.) with `@MainActor`.
 - **ObjC interop:** Classes used as `NSMenuItem` targets or via `#selector` must inherit from `NSObject`.
+- **Appearance:** Use semantic system colors (`NSColor.controlBackgroundColor`, `.windowBackgroundColor`, `.separatorColor`, etc.); never hard-code `Color(white:)`, `Color(red:green:blue:)`, or literal hex values.
 - **Caching:** Use `NSCache` with a `countLimit`; memoize negative lookups in a separate bounded `Set<Key>` (`dict[key] = nil` removes the entry, not caches a miss).
-- **Regex & state:** Declare `NSRegularExpression` as `static let`; observe shared singleton state via `@ObservedObject`/`@StateObject`, never read directly.
+- **Numeric safety:** Clamp decoded integer fields immediately after decoding (`copyCount = max(1, decoded)`); use overflow-safe arithmetic (`addingReportingOverflow` / `saturatingAdd`) for runtime counters; re-clamp after migration/merge.
+- **Deduplication:** Use SHA256 (CryptoKit) plus `content` equality; on match, update all metadata fields — never only the timestamp. Prefer non-nil over nil when collapsing duplicates.
+- **Data consistency:** Define one explicit merge rule per field; re-sort with the canonical comparator after any merge pass; persist immediately when a load-time migration detects changes.
+- **Hash migration:** On hash algorithm change, recompute `contentHash` from `content` for all decoded entries in `load()` before deduplication.
+- **Async & state:** Capture lazily-evaluated values into a `let` before `DispatchQueue.main.async`. Declare `NSRegularExpression` as `static let`; observe shared singletons via `@ObservedObject`/`@StateObject`. Reset all ephemeral `@State` (focus, selection, query, scroll) in the panel-opened handler on every show. Consolidate dependent `.onReceive` subscriptions on sibling views into one handler.
 - **Access control:** Declare types used only within one file `private` or `fileprivate`.
-- **Numeric safety:** Clamp decoded integer fields immediately after decoding (e.g., `copyCount = max(1, decoded)`); use overflow-safe arithmetic (`addingReportingOverflow` or `saturatingAdd`) for runtime-incremented counters; apply the same clamping after migration/merge.
-- **Deduplication:** Use SHA256 (CryptoKit) plus `content` equality for dedup checks; on match, update all metadata fields — never only the timestamp. Prefer non-nil over nil for every optional field when collapsing duplicates.
-- **Data consistency:** Define one explicit merge rule per field. Re-sort with the canonical comparator after any merge/collapse pass. Persist immediately when a load-time migration detects changes.
-- **Hash migration:** When changing a persisted hash algorithm, recompute `contentHash` from `content` for all decoded entries on `load()` before deduplication — so legacy and new hashes don't coexist.
 - **Lazy embedding:** Skip embedding if a non-nil vector already exists; compute embeddings off the main thread.
-- **Async capture:** Capture lazily-evaluated values (e.g., `filtered.first?.id`) into a `let` constant before `DispatchQueue.main.async`; never re-evaluate stateful expressions inside the async block.
-- **Panel state:** On show/hide without re-creation, reset all ephemeral `@State` (focus, selection, query, scroll) in the panel-opened handler — not only on first load.
-- **Event handlers:** Consolidate multiple `.onReceive` subscriptions on sibling views into one handler when one handler's output depends on state mutated by the other.
-- **Appearance:** Never use hard-coded `Color(white:)`, `Color(red:green:blue:)`, or literal hex colors in SwiftUI/AppKit views; use semantic system colors (`NSColor.controlBackgroundColor`, `.windowBackgroundColor`, `.separatorColor`, etc.) so the UI adapts to Light/Dark Mode and custom appearances.
 
 ### Search, Text Processing & Python
 - Apply identical preprocessing (case folding, whitespace normalization) to both indexed content and queries; preserve original-cased text for embeddings/display.
 - Trim whitespace from user input; reject blank/whitespace-only strings before searching or embedding.
 - Split user input on `\s` (including newlines) so tokens are recognized in pasted multi-line input.
-- In regex token-stripping, consume adjacent whitespace in the same substitution; include `\n`/`\r\n` alongside `[ \t]` and `$` in boundary classes.
-- Define one canonical list of supported operators/tokens; derive all regex alternations and switch/case logic from it. Keep regex comments in sync with the pattern.
+- In regex token-stripping, consume adjacent whitespace in the same substitution; include `\n`/`\r\n` in boundary classes alongside `[ \t]` and `$`.
+- Define one canonical list of supported operators/tokens; derive all regex alternations and switch/case branches from it; keep comments in sync.
 - Pass `encoding="utf-8"` (and `newline="\n"` for stable diffs) to `open()`, `Path.read_text()`, and `Path.write_text()`.
 - Escape/split `]]>` before inserting arbitrary text into XML CDATA sections.
 
