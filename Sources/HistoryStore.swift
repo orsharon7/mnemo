@@ -173,43 +173,60 @@ final class HistoryStore: ObservableObject {
         }
     }
 
-    /// Parse type-filter operators (/url, /json, /code, /email, /text, /multiline)
-    /// and the pin-only operator (/pin) from the query string.
+    /// Single source-of-truth operator table.
+    /// Each entry maps the operator token (lowercased, with leading "/") to either
+    /// a `ClipEntryType` filter or `nil` for special-purpose operators (/pin).
+    private static let operatorTable: [(token: String, type: ClipEntryType?)] = [
+        ("/url",       .url),
+        ("/json",      .json),
+        ("/code",      .code),
+        ("/email",     .email),
+        ("/text",      .text),
+        ("/multiline", .multiline),
+        ("/pin",       nil),
+    ]
+
+    /// Regex derived from `operatorTable`; compiled once at class load time.
+    /// Matches an operator token preceded by start-of-string or whitespace (group 1),
+    /// followed by a non-newline space/tab, a newline boundary lookahead, or end-of-string.
+    private static let operatorRegex: NSRegularExpression = {
+        let alternation = operatorTable.map { NSRegularExpression.escapedPattern(for: $0.token) }.joined(separator: "|")
+        let pattern = "(?i)(^|\\s)(\(alternation))(?:[ \\t]|(?=[\\r\\n])|$)"
+        return try! NSRegularExpression(pattern: pattern)
+    }()
+
+    /// Trailing-whitespace-before-newline cleanup regex; removes spaces/tabs that
+    /// operator stripping can leave immediately before a newline.
+    private static let trailingSpaceBeforeNewlineRegex = try! NSRegularExpression(
+        pattern: "[ \\t]+(?=\\r?\\n)"
+    )
+
+    /// Parse search operators from the query string.
     /// Returns `(types: Set<ClipEntryType>, pinOnly: Bool, text: String)` where
     /// `types` is the set of type filters, `pinOnly` indicates the /pin operator was present,
     /// and `text` is the remaining free-text query with operators stripped.
     /// Internal whitespace (including newlines) is preserved so multi-line snippet searches
     /// match correctly; leading/trailing whitespace is trimmed by the caller before matching.
-    // Precompiled once; reused on every search invocation to avoid per-keystroke regex compilation.
-    private static let operatorRegex = try! NSRegularExpression(
-        pattern: "(?i)(^|\\s)(/url|/json|/code|/email|/text|/multiline|/pin)(?:[ \\t]|(?=[\\r\\n])|$)"
-    )
-
     private static func parseOperators(_ q: String) -> (types: Set<ClipEntryType>, pinOnly: Bool, text: String) {
         var types: Set<ClipEntryType> = []
         var pinOnly = false
         // Tokenize only to identify operators; do NOT re-join tokens (that would collapse \n → space).
         let tokens = q.components(separatedBy: .whitespacesAndNewlines).filter { !$0.isEmpty }
         for token in tokens {
-            switch token.lowercased() {
-            case "/url":       types.insert(.url)
-            case "/json":      types.insert(.json)
-            case "/code":      types.insert(.code)
-            case "/email":     types.insert(.email)
-            case "/text":      types.insert(.text)
-            case "/multiline": types.insert(.multiline)
-            case "/pin":       pinOnly = true
-            default:           break
+            if let entry = operatorTable.first(where: { $0.token == token.lowercased() }) {
+                if let t = entry.type { types.insert(t) } else { pinOnly = true }
             }
         }
         // Remove operator tokens from the original string, preserving all internal whitespace,
         // so multi-line free-text queries (e.g. "a\nb") are not collapsed to "a b".
-        // Pattern: match operator preceded by start-of-string or whitespace (captured as $1),
-        // followed by a non-newline space/tab, a newline boundary (lookahead `(?=[\\r\\n])`), or end-of-string — replace with
-        // just $1 so the surrounding text is joined by at most one space, avoiding doubled whitespace.
-        // The regex is cached as a static constant to avoid recompiling it on every search invocation.
+        // Replacing with $1 can leave a trailing space/tab before a newline when the operator
+        // was "word /op\nnextword" — clean that up so multi-line substring matches still work.
         let range = NSRange(q.startIndex..., in: q)
-        let freeText = Self.operatorRegex.stringByReplacingMatches(in: q, range: range, withTemplate: "$1")
+        var freeText = Self.operatorRegex.stringByReplacingMatches(in: q, range: range, withTemplate: "$1")
+        let freeRange = NSRange(freeText.startIndex..., in: freeText)
+        freeText = Self.trailingSpaceBeforeNewlineRegex.stringByReplacingMatches(
+            in: freeText, range: freeRange, withTemplate: ""
+        )
         return (types, pinOnly, freeText)
     }
 
