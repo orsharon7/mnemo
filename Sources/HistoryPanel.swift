@@ -71,6 +71,8 @@ struct HistoryPanel: View {
     var onDismiss: () -> Void
     var onExcludeApp: ((String) -> Void)?
 
+    @Environment(\.displayScale) private var displayScale
+
     @State private var query: String = ""
     @State private var selectionIndex: Int = 0
     @State private var previewing: ClipEntry?
@@ -97,7 +99,7 @@ struct HistoryPanel: View {
                 .padding(.top, 10)
                 .padding(.bottom, 6)
 
-            Color(NSColor.separatorColor).frame(height: 1 / (NSScreen.main?.backingScaleFactor ?? 2))
+            Color(NSColor.separatorColor).frame(height: 1 / displayScale)
 
             if filtered.isEmpty {
                 VStack {
@@ -135,7 +137,7 @@ struct HistoryPanel: View {
                 }
             }
 
-            Color(NSColor.separatorColor).frame(height: 1 / (NSScreen.main?.backingScaleFactor ?? 2))
+            Color(NSColor.separatorColor).frame(height: 1 / displayScale)
             HStack(spacing: 12) {
                 Text("↑↓ navigate").foregroundStyle(.secondary)
                 Text("⏎ paste").foregroundStyle(.secondary)
@@ -404,7 +406,9 @@ struct SearchField: NSViewRepresentable {
         tf.target = context.coordinator
         tf.action = #selector(Coordinator.submit(_:))
         context.coordinator.attach(field: tf)
-        DispatchQueue.main.async { tf.window?.makeFirstResponder(tf) }
+        if isFocused {
+            DispatchQueue.main.async { tf.window?.makeFirstResponder(tf) }
+        }
         return tf
     }
 
