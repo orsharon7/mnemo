@@ -107,7 +107,7 @@ struct HistoryPanel: View {
                             isSearchFocused
                                 ? Color.accentColor.opacity(0.75)
                                 : Color.primary.opacity(0.08),
-                            lineWidth: 1
+                            lineWidth: 1 / displayScale
                         )
                 )
                 .padding(.horizontal, 10)
