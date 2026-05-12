@@ -50,7 +50,8 @@ Project instructions for AI coding agents.
 - **Async & state:** Capture lazily-evaluated values into a `let` before `DispatchQueue.main.async`. Declare `NSRegularExpression` as `static let`; observe shared singletons via `@ObservedObject`/`@StateObject`. Reset all ephemeral `@State` (focus, selection, query, scroll) in the panel-opened handler on every show. Consolidate dependent `.onReceive` subscriptions on sibling views into one handler.
 - **Layout & access:** Use `Color.clear.frame(height:)` or padding for fixed-height gaps — never `Spacer().frame(height:)`. Declare types used only within one file `private` or `fileprivate`.
 - **Lazy embedding:** Skip embedding if a non-nil vector already exists; compute embeddings off the main thread.
-- **Display scale & hairlines:** Use `@Environment(\.displayScale)` or `window.screen?.backingScaleFactor` for per-pixel sizing; derive `lineWidth` from display scale (`1 / displayScale`) for exact 1px Retina strokes. Never use `NSScreen.main?.backingScaleFactor` or hard-code `lineWidth: 1`.
+- **Display scale & hairlines:** Use `@Environment(\.displayScale)` or `window.screen?.backingScaleFactor` for per-pixel sizing; derive `lineWidth` from display scale (`1 / displayScale`) for exact 1px Retina strokes. Never use `NSScreen.main?.backingScaleFactor` or hard-code `lineWidth: 1`. Declare `@Environment(\.displayScale) private var displayScale` in every SwiftUI view that computes pixel-aligned sizes; do not reference it before declaring it.
+- **Force-unwrap:** Never force-unwrap (`!`) a value that can be safely unwrapped; prefer `guard let`, `if let`, or nil-coalescing — even when the value appears guaranteed at the call site.
 - **Focus management:** Gate `makeFirstResponder` in `makeNSView` on the `isFocused` binding; drive focus changes through `updateNSView`.
 
 ### Search, Text Processing & Python
