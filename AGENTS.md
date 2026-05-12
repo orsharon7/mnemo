@@ -5,7 +5,7 @@ Project instructions for AI coding agents.
 <!-- BEGIN:COPILOT-RULES -->
 ## Coding Guidelines (AI-maintained)
 *Auto-updated by pr-review-reflect — do not edit this section manually.*
-*Last updated: 2026-05-12 from PR #31 review*
+*Last updated: 2026-05-12 from PR #32 review*
 
 ### Performance & Web Vitals
 - Never apply `loading="lazy"` to above-the-fold images; use `fetchpriority="high"` for the primary hero asset to avoid LCP regressions.
@@ -90,6 +90,11 @@ Project instructions for AI coding agents.
 
 ### Python & File I/O
 - Always specify `encoding="utf-8"` (and `newline="\n"` for stable diffs) when calling `Path.read_text()` / `write_text()` or `open()` on files that declare UTF-8 or will be parsed as XML/JSON; relying on the runner's default locale encoding can produce decode errors or corrupt bytes in non-UTF-8 environments.
+
+### Search & Text Processing
+- When splitting user-supplied strings into tokens, use a whitespace set that includes newlines (e.g. `.whitespacesAndNewlines` in Swift, `\s` in regex) so tokens are recognized even when input is pasted with embedded newlines.
+- When lowercasing a query for case-insensitive matching or operator extraction, preserve the original-cased text separately for any downstream use (e.g. semantic embeddings, display) to avoid silently degrading quality through inconsistent preprocessing.
+- When indexing content and querying against those indexes (e.g. semantic/vector search), apply identical text preprocessing to both sides; mismatched normalization (e.g. lowercasing query but not indexed content, or vice versa) degrades match quality.
 
 <!-- END:COPILOT-RULES -->
 
