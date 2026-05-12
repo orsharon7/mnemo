@@ -15,9 +15,14 @@ Project instructions for AI coding agents.
 
 ### CSS Compatibility & Fallbacks
 - When using modern CSS features (e.g. `color-mix()`, container queries, `:has()`), always declare a solid-color or safe fallback value before the modern declaration so the UI remains legible in unsupported browsers.
+- When using `-webkit-text-fill-color: transparent` with a gradient background, always provide a non-`color-mix()` fallback gradient before the `color-mix()` version so text remains visible if `color-mix()` is unsupported.
 
 ### Code Quality
 - Remove unused CSS custom properties (dead variables like `--unused-var`) to keep stylesheets clean and maintainable.
+- Never use inline styles in HTML for layout or theming; define CSS classes instead to ensure maintainability and consistent theming across pages.
+
+### HTML & Navigation
+- Never use `href="#"` for navigation or brand links; link to a real destination (e.g. `/`, `index.html`, or a named anchor) to avoid dangling hash jumps.
 
 ### Product Completeness
 - Before marking an issue as closed in a PR, verify every acceptance criterion from that issue is implemented (e.g. a required page, section, or link must exist, not just be planned).
