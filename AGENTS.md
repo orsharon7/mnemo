@@ -45,6 +45,9 @@ Project instructions for AI coding agents.
 - **Regex & state:** Declare `NSRegularExpression` as `static let`; observe shared singleton state via `@ObservedObject`/`@StateObject`, never read directly.
 - **Access control:** Declare types used only within one file `private` or `fileprivate`.
 - **Decoded integers:** Clamp decoded numeric fields to their documented valid range immediately after decoding (e.g., `copyCount = max(1, decoded)`); apply the same clamping to values produced during migration/merge.
+- **Counter overflow:** Use overflow-safe arithmetic (`addingReportingOverflow` or `saturatingAdd`) for counters incremented at runtime (e.g., `copyCount += 1`); clamp to a documented max rather than letting the value trap.
+- **Content identity hashing:** Use a cryptographic hash (e.g., CryptoKit `SHA256`) for content-equality checks used in deduplication; additionally verify `content` equality before treating two entries as duplicates to eliminate collision risk.
+- **Merge rule consistency:** Define one explicit merge rule per field when collapsing duplicates (e.g., "take the value from the entry with the latest `lastUsedAt`"); ensure the code, comments, and PR/commit description all agree — never let them diverge silently.
 - **Lazy embedding:** Check for an existing entry (and a non-nil vector) before computing embeddings; skip the embedding call when the entry already has a vector, and perform embedding off the main thread.
 - **Lossless merging:** When collapsing duplicates, prefer non-nil over nil for every optional field (vector, sourceName, type, etc.); never silently discard a richer value from a later duplicate in favour of the first-seen entry's nil.
 - **Sort after mutation:** Re-sort any collection with the canonical comparator after a merge/collapse pass; never leave results in insertion order when the store has a defined sort order (e.g., pinned-first + recency).
