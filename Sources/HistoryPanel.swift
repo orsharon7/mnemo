@@ -76,7 +76,7 @@ struct HistoryPanel: View {
                 Text("⌘P pin").foregroundStyle(.secondary)
                 Text("⌫ delete").foregroundStyle(.secondary)
                 Text("⌘1–9 quick").foregroundStyle(.secondary)
-                Text("/url /json /pin /code /email").foregroundStyle(.tertiary)
+                Text("/url /json /pin /code /email /text /multiline").foregroundStyle(.tertiary)
                 Spacer()
                 if let bundleID = panelState.previousAppBundleID,
                    let name = panelState.previousAppName,
