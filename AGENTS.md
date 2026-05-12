@@ -46,11 +46,9 @@ Project instructions for AI coding agents.
 - **Caching:** Use `NSCache` with a `countLimit`; memoize negative lookups in a separate bounded `Set<Key>` (`dict[key] = nil` removes the entry, not caches a miss).
 - **Numeric safety:** Clamp decoded integer fields immediately after decoding (`copyCount = max(1, decoded)`); use overflow-safe arithmetic (`addingReportingOverflow` / `saturatingAdd`) for runtime counters; re-clamp after migration/merge.
 - **Deduplication:** Use SHA256 (CryptoKit) plus `content` equality; on match, update all metadata fields — never only the timestamp. Prefer non-nil over nil when collapsing duplicates.
-- **Data consistency:** Define one explicit merge rule per field; re-sort with the canonical comparator after any merge pass; persist immediately when a load-time migration detects changes.
-- **Hash migration:** On hash algorithm change, recompute `contentHash` from `content` for all decoded entries in `load()` before deduplication.
+- **Data consistency:** Define one explicit merge rule per field; re-sort with the canonical comparator after any merge pass; persist immediately when a load-time migration detects changes. On hash algorithm change, recompute `contentHash` from `content` for all decoded entries in `load()` before deduplication.
 - **Async & state:** Capture lazily-evaluated values into a `let` before `DispatchQueue.main.async`. Declare `NSRegularExpression` as `static let`; observe shared singletons via `@ObservedObject`/`@StateObject`. Reset all ephemeral `@State` (focus, selection, query, scroll) in the panel-opened handler on every show. Consolidate dependent `.onReceive` subscriptions on sibling views into one handler.
-- **Layout spacing:** For fixed-height gaps, use `Color.clear.frame(height:)` or padding — never `Spacer().frame(height:)`.
-- **Access control:** Declare types used only within one file `private` or `fileprivate`.
+- **Layout & access:** Use `Color.clear.frame(height:)` or padding for fixed-height gaps — never `Spacer().frame(height:)`. Declare types used only within one file `private` or `fileprivate`.
 - **Lazy embedding:** Skip embedding if a non-nil vector already exists; compute embeddings off the main thread.
 - **Display scale:** Use `@Environment(\.displayScale)` or the window's `screen?.backingScaleFactor` for per-pixel sizing (e.g. hairline separators); never use `NSScreen.main?.backingScaleFactor`, which refers to the menu-bar screen and is wrong on multi-display setups.
 - **Focus management:** Gate the initial `makeFirstResponder` call in `makeNSView` on the `isFocused` binding; let `updateNSView` drive focus changes so the representable's focus state is always consistent with the binding.
