@@ -223,12 +223,12 @@ struct HistoryPanel: View {
     }
 
     private func scrollToTop(proxy: ScrollViewProxy) {
+        guard let firstID = filtered.first?.id else { return }
         // Defer to the next runloop so the List finishes its initial layout
         // before we try to scroll — otherwise the first row can render
         // clipped under the search bar on panel open.
         DispatchQueue.main.async {
-            guard let first = filtered.first else { return }
-            proxy.scrollTo(first.id, anchor: .top)
+            proxy.scrollTo(firstID, anchor: .top)
         }
     }
 }
