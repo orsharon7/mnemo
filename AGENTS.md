@@ -8,65 +8,59 @@ Project instructions for AI coding agents.
 *Last updated: 2026-05-12 from PR #31 review (optimized)*
 
 ### Frontend & CSS
-- Never apply `loading="lazy"` to above-the-fold images; use `fetchpriority="high"` on the primary hero asset.
-- Always add `@media (prefers-reduced-motion: reduce)` to disable `scroll-behavior: smooth` and reduce/disable transitions and hover transforms.
-- Before any modern CSS declaration (`color-mix()`, container queries, `:has()`), declare a safe solid-color or legacy fallback so the UI remains legible in unsupported browsers.
-- For `-webkit-text-fill-color: transparent` gradient text, provide a non-`color-mix()` fallback gradient before the `color-mix()` version.
-- Never use inline styles for layout or theming; define CSS classes instead.
+- Use `fetchpriority="high"` on the primary hero image; never `loading="lazy"` on above-the-fold images.
+- Add `@media (prefers-reduced-motion: reduce)` disabling `scroll-behavior: smooth` and reducing transitions/transforms.
+- Before any modern CSS (`color-mix()`, container queries, `:has()`), declare a solid-color or legacy fallback.
+- For `-webkit-text-fill-color: transparent` gradient text, add a non-`color-mix()` fallback gradient before the `color-mix()` version.
+- Define CSS classes for layout/theming; never inline styles.
 - Remove unused CSS custom properties.
 
 ### HTML & Navigation
 - Never use `href="#"`; link to a real destination (`/`, `index.html`, or a named anchor).
-- Use relative links (`index.html` or `./`) instead of absolute root paths (`/`) for sites deployed at a subpath (e.g. GitHub Pages).
-- For direct-download CTAs, link to the stable asset URL (`.../releases/latest/download/<asset>`), not an intermediate release page.
+- Use relative links (`index.html`, `./`) not absolute root paths (`/`) for subpath-deployed sites (e.g. GitHub Pages).
+- Link download CTAs to `.../releases/latest/download/<asset>`, not an intermediate release page.
 
 ### Code Quality
-- Remove unused imports and unused callback/closure parameters in all languages.
-- Never render separators (`•`, `|`, `/`) unconditionally between optional UI items; only insert between two items that are both present.
-- Keep UI labels, tooltips, and help text synchronized with actual behavior; list every supported operator/command in hint text or remove undocumented ones.
-- Keep inline comments synchronized with the code path; update comments in the same commit as the implementation change.
-- Before closing an issue in a PR, verify every acceptance criterion is implemented.
+- Remove unused imports and unused callback/closure parameters.
+- Insert separators (`•`, `|`, `/`) only between two items that are both present; never unconditionally.
+- Keep UI labels, tooltips, hint text, and inline comments synchronized with actual behavior in the same commit.
+- Before closing a PR issue, verify every acceptance criterion is implemented.
 
 ### Shell Scripting
-- With `set -e`, wrap commands whose non-zero exit needs handling in `if/else` or temporarily disable `-e`; never use `|| true` to blanket-suppress errors.
-- Never overwrite an `EXIT` trap; consolidate cleanup into one trap, guarding each variable with `${VAR:-}`.
-- In trap `rm -rf`, guard with a non-empty check: `[ -n "${VAR:-}" ] && rm -rf -- "$VAR"`.
-- Never check `${array+word}` to guard optional array args; an empty array is still "set" — check `[ ${#ARR[@]} -gt 0 ]` instead.
-- Use match-only mode when extracting with `sed`/`awk` (e.g. `sed -nE '...p'`, `grep -oE`); validate the extracted value before downstream use.
-- Never interpolate unescaped variables into `awk`/`grep` regex patterns; use fixed-string comparison (`-F` / `index()`) or escape metacharacters.
-- Validate external values (git tags, CLI args) used in file paths or destructive commands (`rm`, `mv`): reject `/`, `..`, or path metacharacters.
+- With `set -e`, handle expected non-zero exits via `if/else` or a local `-e` disable; never blanket-suppress with `|| true`.
+- Never overwrite an `EXIT` trap; consolidate all cleanup into one trap, guarding each variable with `${VAR:-}`.
+- In `rm -rf` traps, guard with `[ -n "${VAR:-}" ] && rm -rf -- "$VAR"`.
+- Check array emptiness with `[ ${#ARR[@]} -gt 0 ]`; `${array+word}` is true even for empty arrays.
+- Use match-only extraction (`sed -nE '...p'`, `grep -oE`); validate extracted values before use.
+- Use fixed-string comparison (`-F` / `index()`) or escape metacharacters instead of interpolating variables into `awk`/`grep` patterns.
+- Validate external values (git tags, CLI args) used in paths or destructive commands; reject `/`, `..`, and path metacharacters.
 
 ### CI & Release
-- Mark optional-tool install steps `continue-on-error: true` so built-in fallback paths can still execute.
-- Never use `[skip ci]` when downstream workflows (Pages deploy, appcast) must still run; use `paths` filters or `if` conditions to narrow suppression.
-- Verify cache hits include all required artifacts (binaries, configs), not just the top-level directory; for version-pinned downloads, confirm the cached version matches (version marker file or `FORCE=1` escape hatch).
-- In CI branch-switching workflows, checkout the branch first, then generate/modify files; reset the working tree (`git reset --hard`) before switching to avoid "would be overwritten" failures.
-- Ensure release workflows include all three steps: `codesign` (Developer ID), `xcrun notarytool submit --wait`, and `xcrun stapler staple`; do not close notarization issues without all three present.
-- Match CI `paths` filter behavior to documented intent; widen or remove the filter if the intent is to deploy on every push.
-- Verify downloaded tarballs/binaries with a pinned SHA256 checksum before execution; expose a matching checksum override variable alongside any version override variable.
+- Mark optional-tool install steps `continue-on-error: true`.
+- Replace `[skip ci]` with `paths` filters or `if` conditions when downstream workflows (Pages deploy, appcast) must still run.
+- Verify cache hits include all required artifacts; for version-pinned downloads confirm the cached version matches (marker file or `FORCE=1` escape hatch).
+- In branch-switching CI workflows, checkout the branch first, then generate/modify files; `git reset --hard` before switching to avoid overwrite failures.
+- Release workflows must include all three steps: `codesign` (Developer ID), `xcrun notarytool submit --wait`, `xcrun stapler staple`.
+- Verify downloaded tarballs/binaries with a pinned SHA256 checksum; expose a checksum override variable alongside any version override.
 
 ### Makefile & Build Scripts
-- In Makefiles, codesign last — after all bundle mutations (resource copies, framework embedding, icon injection).
-- Add order-only prerequisites (`$(TARGET): | dirs`) to targets writing into phony-created directories to prevent `make -j` races.
-- Depend only on the real file target, not both a phony wrapper and the real file, to avoid redundant fetches.
-- For `create-dmg`, stage the `.app` bundle and `/Applications` symlink in a temp directory and pass that as the source.
+- Codesign last — after all bundle mutations (resource copies, framework embedding, icon injection).
+- Add order-only prerequisites (`$(TARGET): | dirs`) to prevent `make -j` races on phony-created directories.
+- Depend only on the real file target, not both a phony wrapper and the real file.
+- For `create-dmg`, stage the `.app` bundle and `/Applications` symlink in a temp directory and pass it as the source.
 
 ### Swift
-- **Threading:** Annotate Swift types/methods calling AppKit APIs (`NSWorkspace`, `NSImage`, etc.) with `@MainActor`.
+- **Threading:** Annotate types/methods calling AppKit APIs (`NSWorkspace`, `NSImage`, etc.) with `@MainActor`.
 - **ObjC interop:** Classes used as `NSMenuItem` targets or via `#selector` must inherit from `NSObject`.
-- **Caching:** Use `NSCache` with a `countLimit` instead of an unbounded `Dictionary` for images/resources; apply the same bound to negative-lookup (miss) caches.
-- **Cache misses:** Memoize negative lookups in a separate bounded structure (e.g. `Set<Key>` with max size); `dict[key] = nil` removes the key and won't store a miss.
-- **Reactive state:** Observe shared singleton state in SwiftUI via `@ObservedObject` or `@StateObject`; never read it directly without observation.
-- **Access control:** Declare Swift types used only within one file `private` or `fileprivate`.
+- **Caching:** Use `NSCache` with a `countLimit` (not unbounded `Dictionary`) for images/resources; memoize negative lookups in a separate bounded `Set<Key>` — `dict[key] = nil` removes the entry, it won't cache a miss.
+- **Reactive state:** Observe shared singleton state via `@ObservedObject` or `@StateObject`; never read it directly without observation.
+- **Access control:** Declare types used only within one file `private` or `fileprivate`.
 
-### Search & Text Processing
-- Apply identical preprocessing (case folding, whitespace normalization) to both indexed content and queries; mismatched normalization degrades match quality.
-- When lowercasing for matching, preserve the original-cased text separately for embeddings or display.
+### Search, Text Processing & Python
+- Apply identical preprocessing (case folding, whitespace normalization) to both indexed content and queries; preserve original-cased text separately for embeddings/display.
 - Split user input on `\s` (including newlines) so tokens are recognized in pasted multi-line input.
-- Escape/split `]]>` before inserting arbitrary text into XML CDATA sections, or use a library that handles it automatically.
-
-### Python
-- Always pass `encoding="utf-8"` (and `newline="\n"` for stable diffs) to `open()`, `Path.read_text()`, and `Path.write_text()` on UTF-8 or XML/JSON files.
+- Escape/split `]]>` before inserting arbitrary text into XML CDATA sections.
+- Pass `encoding="utf-8"` (and `newline="\n"` for stable diffs) to `open()`, `Path.read_text()`, and `Path.write_text()`.
 
 <!-- END:COPILOT-RULES -->
 
