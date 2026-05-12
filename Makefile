@@ -64,8 +64,12 @@ $(FRAMEWORKS_DIR)/Sparkle.framework: $(SPARKLE_FRAMEWORK) | dirs
 	@cp -R $(SPARKLE_FRAMEWORK) $(FRAMEWORKS_DIR)/Sparkle.framework
 
 codesign:
-	@codesign --force --deep --sign - $(APP_BUNDLE) >/dev/null 2>&1 || true
-	@echo "→ ad-hoc signed."
+	@if codesign --force --deep --sign - $(APP_BUNDLE) >/dev/null 2>&1; then \
+		echo "→ ad-hoc signed."; \
+	else \
+		echo "ERROR: codesign failed for $(APP_BUNDLE)" >&2; \
+		exit 1; \
+	fi
 
 run: all
 	@echo "→ Launching $(APP_NAME)…"

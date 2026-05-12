@@ -86,7 +86,7 @@ def main() -> int:
     args.appcast.parent.mkdir(parents=True, exist_ok=True)
 
     if args.appcast.exists():
-        xml = args.appcast.read_text()
+        xml = args.appcast.read_text(encoding="utf-8")
     else:
         xml = TEMPLATE
 
@@ -108,7 +108,7 @@ def main() -> int:
     # Collapse runs of >2 blank lines.
     xml = re.sub(r"\n{3,}", "\n\n", xml)
 
-    args.appcast.write_text(xml)
+    args.appcast.write_text(xml, encoding="utf-8", newline="\n")
     print(f"→ Wrote {args.appcast} (version {version_bare})")
     return 0
 

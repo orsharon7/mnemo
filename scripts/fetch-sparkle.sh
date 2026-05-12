@@ -16,6 +16,7 @@ set -euo pipefail
 VERSION="${SPARKLE_VERSION:-2.9.1}"
 FRAMEWORKS_DIR="Frameworks"
 SPARKLE_FRAMEWORK="${FRAMEWORKS_DIR}/Sparkle.framework"
+VERSION_MARKER="${FRAMEWORKS_DIR}/.sparkle-version"
 
 # Pinned SHA256 for Sparkle 2.9.1 tarball — update when bumping VERSION.
 # Override with SPARKLE_SHA256 when also overriding SPARKLE_VERSION.
@@ -24,8 +25,10 @@ EXPECTED_SHA256="${SPARKLE_SHA256:-c0dde519fd2a43ddfc6a1eb76aec284d7d888fe281414
 if [[ -d "${SPARKLE_FRAMEWORK}" ]] && \
    [[ -x "${FRAMEWORKS_DIR}/bin/sign_update" ]] && \
    [[ -x "${FRAMEWORKS_DIR}/bin/generate_appcast" ]] && \
-   [[ -x "${FRAMEWORKS_DIR}/bin/generate_keys" ]]; then
-  echo "→ Sparkle.framework and bin tools already present at ${FRAMEWORKS_DIR}"
+   [[ -x "${FRAMEWORKS_DIR}/bin/generate_keys" ]] && \
+   [[ -f "${VERSION_MARKER}" ]] && \
+   [[ "$(cat "${VERSION_MARKER}")" == "${VERSION}" ]]; then
+  echo "→ Sparkle.framework ${VERSION} already present at ${FRAMEWORKS_DIR}"
   exit 0
 fi
 
@@ -54,4 +57,5 @@ cp "${TMP}/bin/generate_appcast" "${FRAMEWORKS_DIR}/bin/generate_appcast"
 cp "${TMP}/bin/generate_keys" "${FRAMEWORKS_DIR}/bin/generate_keys"
 chmod +x "${FRAMEWORKS_DIR}/bin/"*
 
+echo "${VERSION}" > "${VERSION_MARKER}"
 echo "→ Sparkle ${VERSION} ready at ${SPARKLE_FRAMEWORK}"
