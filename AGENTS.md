@@ -78,6 +78,10 @@ Project instructions for AI coding agents.
 
 ### Makefile & Parallel Builds
 - When Makefile targets write into directories created by a phony prerequisite (e.g. `dirs`), add order-only prerequisites (`$(TARGET): | dirs`) to every such target so parallel builds (`make -j`) do not race against directory creation.
+- Never list both a phony convenience target and the real file target it wraps as prerequisites of the same rule; depend only on the real file target to keep the dependency graph unambiguous and avoid redundant fetches.
+
+### Code Comments & Documentation Accuracy
+- Keep inline comments and step descriptions synchronized with the actual code path; when the implementation changes (e.g. a file is now generated to a different location then copied), update the comment in the same commit to prevent misleading future readers.
 
 <!-- END:COPILOT-RULES -->
 
