@@ -1,6 +1,7 @@
 import Foundation
 import AppKit
 import Combine
+import CryptoKit
 
 struct ClipEntry: Identifiable, Codable, Equatable {
     let id: UUID
@@ -316,18 +317,25 @@ final class HistoryStore: ObservableObject {
     }
 
     private static func collapseDuplicates(_ entries: [ClipEntry]) -> [ClipEntry] {
+        // Key on (contentHash, content) pair to avoid false merges from hash collisions.
         var seen: [String: Int] = [:]
         var result: [ClipEntry] = []
         for entry in entries {
-            if let existingIdx = seen[entry.contentHash] {
+            let dedupeKey = entry.contentHash + "\0" + entry.content
+            if let existingIdx = seen[dedupeKey] {
                 var merged = result[existingIdx]
-                merged.copyCount += entry.copyCount
-                if entry.lastUsedAt > merged.lastUsedAt { merged.lastUsedAt = entry.lastUsedAt }
-                if !merged.isPinned && entry.isPinned { merged.isPinned = true }
+                let (newCount, overflow) = merged.copyCount.addingReportingOverflow(entry.copyCount)
+                merged.copyCount = overflow ? Int.max : newCount
+                if entry.lastUsedAt > merged.lastUsedAt {
+                    merged.lastUsedAt = entry.lastUsedAt
+                    merged.sourceBundle = entry.sourceBundle
+                    merged.sourceName = entry.sourceName
+                    merged.isPinned = entry.isPinned
+                }
                 if merged.vector == nil { merged.vector = entry.vector }
                 result[existingIdx] = merged
             } else {
-                seen[entry.contentHash] = result.count
+                seen[dedupeKey] = result.count
                 result.append(entry)
             }
         }
@@ -339,11 +347,7 @@ final class HistoryStore: ObservableObject {
     }
 
     private func sha256(_ s: String) -> String {
-        var hash: UInt64 = 0xcbf29ce484222325
-        for byte in s.utf8 {
-            hash ^= UInt64(byte)
-            hash = hash &* 0x100000001b3
-        }
-        return String(hash, radix: 16)
+        let digest = SHA256.hash(data: Data(s.utf8))
+        return digest.map { String(format: "%02x", $0) }.joined()
     }
 }
