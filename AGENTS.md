@@ -5,7 +5,7 @@ Project instructions for AI coding agents.
 <!-- BEGIN:COPILOT-RULES -->
 ## Coding Guidelines (AI-maintained)
 *Auto-updated by pr-review-reflect — do not edit this section manually.*
-*Last updated: 2026-05-12 from PR #31 review (optimized)*
+*Last updated: 2026-05-12 from PR #32 review*
 
 ### Frontend & CSS
 - Use `fetchpriority="high"` on the primary hero image; never `loading="lazy"` on above-the-fold images.
@@ -53,11 +53,13 @@ Project instructions for AI coding agents.
 - **Threading:** Annotate types/methods calling AppKit APIs (`NSWorkspace`, `NSImage`, etc.) with `@MainActor`.
 - **ObjC interop:** Classes used as `NSMenuItem` targets or via `#selector` must inherit from `NSObject`.
 - **Caching:** Use `NSCache` with a `countLimit` (not unbounded `Dictionary`) for images/resources; memoize negative lookups in a separate bounded `Set<Key>` — `dict[key] = nil` removes the entry, it won't cache a miss.
+- **Regex caching:** Declare `NSRegularExpression` instances as `static let` so they are compiled once, not on every call-site invocation (e.g. per keystroke).
 - **Reactive state:** Observe shared singleton state via `@ObservedObject` or `@StateObject`; never read it directly without observation.
 - **Access control:** Declare types used only within one file `private` or `fileprivate`.
 
 ### Search, Text Processing & Python
 - Apply identical preprocessing (case folding, whitespace normalization) to both indexed content and queries; preserve original-cased text separately for embeddings/display.
+- Trim leading/trailing whitespace from user input and check for blank strings (not just `.isEmpty`) before running searches or embedding; a whitespace-only needle produces unintended matches.
 - Split user input on `\s` (including newlines) so tokens are recognized in pasted multi-line input.
 - Escape/split `]]>` before inserting arbitrary text into XML CDATA sections.
 - Pass `encoding="utf-8"` (and `newline="\n"` for stable diffs) to `open()`, `Path.read_text()`, and `Path.write_text()`.
