@@ -5,7 +5,7 @@ Project instructions for AI coding agents.
 <!-- BEGIN:COPILOT-RULES -->
 ## Coding Guidelines (AI-maintained)
 *Auto-updated by pr-review-reflect — do not edit this section manually.*
-*Last updated: 2026-05-12 from PR #33 review (optimized)*
+*Last updated: 2026-05-12 from PR #33 review*
 
 ### Frontend & CSS
 - Set `fetchpriority="high"` on the primary hero image; never use `loading="lazy"` on above-the-fold images.
@@ -48,6 +48,8 @@ Project instructions for AI coding agents.
 - **Lazy embedding:** Check for an existing entry (and a non-nil vector) before computing embeddings; skip the embedding call when the entry already has a vector, and perform embedding off the main thread.
 - **Lossless merging:** When collapsing duplicates, prefer non-nil over nil for every optional field (vector, sourceName, type, etc.); never silently discard a richer value from a later duplicate in favour of the first-seen entry's nil.
 - **Sort after mutation:** Re-sort any collection with the canonical comparator after a merge/collapse pass; never leave results in insertion order when the store has a defined sort order (e.g., pinned-first + recency).
+- **Full metadata refresh on dedup:** When a duplicate is detected (e.g., `contentHash` match), update all per-event metadata fields (source app, bundle, type, etc.) along with the timestamp — never refresh only the timestamp while leaving display fields stale.
+- **Persist after migration:** When a load-time migration or collapse detects changes, persist the result immediately rather than waiting for the next user-triggered save; otherwise the migration re-runs on every launch.
 
 ### Search, Text Processing & Python
 - Apply identical preprocessing (case folding, whitespace normalization) to both indexed content and queries; preserve original-cased text separately for embeddings/display.
