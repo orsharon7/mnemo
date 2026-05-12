@@ -135,6 +135,6 @@ jobs:
           if git diff --cached --quiet; then
             echo "→ appcast.xml unchanged, nothing to commit"
           else
-            git commit -m "chore(release): update appcast.xml for ${{ steps.tag.outputs.name }} [skip ci]"
+            git commit -m "chore(release): update appcast.xml for ${{ steps.tag.outputs.name }}"
             git push origin dev
           fi

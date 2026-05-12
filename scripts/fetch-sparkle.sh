@@ -21,8 +21,11 @@ SPARKLE_FRAMEWORK="${FRAMEWORKS_DIR}/Sparkle.framework"
 # Override with SPARKLE_SHA256 when also overriding SPARKLE_VERSION.
 EXPECTED_SHA256="${SPARKLE_SHA256:-c0dde519fd2a43ddfc6a1eb76aec284d7d888fe281414f9177de3164d98ba4c7}"
 
-if [[ -d "${SPARKLE_FRAMEWORK}" ]]; then
-  echo "→ Sparkle.framework already present at ${SPARKLE_FRAMEWORK}"
+if [[ -d "${SPARKLE_FRAMEWORK}" ]] && \
+   [[ -x "${FRAMEWORKS_DIR}/bin/sign_update" ]] && \
+   [[ -x "${FRAMEWORKS_DIR}/bin/generate_appcast" ]] && \
+   [[ -x "${FRAMEWORKS_DIR}/bin/generate_keys" ]]; then
+  echo "→ Sparkle.framework and bin tools already present at ${FRAMEWORKS_DIR}"
   exit 0
 fi
 
