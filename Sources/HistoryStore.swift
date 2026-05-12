@@ -173,15 +173,18 @@ final class HistoryStore: ObservableObject {
         }
     }
 
-    /// Parse type-filter operators (/url, /json, /pin, /code, /email, /text)
+    /// Parse type-filter operators (/url, /json, /pin, /code, /email, /text, /multiline)
     /// from the query string. Returns (typeFilters, pinFilter, remainingText).
+    /// The returned `text` preserves the original casing of the free-text tokens
+    /// so it can be used directly for embedding without casing inconsistencies.
     private static func parseOperators(_ q: String) -> (types: Set<ClipEntryType>, pinOnly: Bool, text: String) {
         var types: Set<ClipEntryType> = []
         var pinOnly = false
         var rest: [String] = []
-        let tokens = q.lowercased().components(separatedBy: .whitespaces).filter { !$0.isEmpty }
+        // Split on all whitespace (including newlines) so pasted multi-line queries work.
+        let tokens = q.components(separatedBy: .whitespacesAndNewlines).filter { !$0.isEmpty }
         for token in tokens {
-            switch token {
+            switch token.lowercased() {
             case "/url":       types.insert(.url)
             case "/json":      types.insert(.json)
             case "/code":      types.insert(.code)
@@ -189,7 +192,7 @@ final class HistoryStore: ObservableObject {
             case "/text":      types.insert(.text)
             case "/multiline": types.insert(.multiline)
             case "/pin":       pinOnly = true
-            default:           rest.append(token)
+            default:           rest.append(token)  // preserve original casing
             }
         }
         return (types, pinOnly, rest.joined(separator: " "))
@@ -215,7 +218,7 @@ final class HistoryStore: ObservableObject {
             && Embedder.shared.isAvailable
             && needle.count >= 3
 
-        if useSemantic, let qv = Embedder.shared.embed(needle) {
+        if useSemantic, let qv = Embedder.shared.embed(freeText) {
             let threshold: Float = 0.30
             var scored: [(ClipEntry, Float)] = []
             scored.reserveCapacity(pool.count)
