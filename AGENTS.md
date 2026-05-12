@@ -5,12 +5,12 @@ Project instructions for AI coding agents.
 <!-- BEGIN:COPILOT-RULES -->
 ## Coding Guidelines (AI-maintained)
 *Auto-updated by pr-review-reflect — do not edit this section manually.*
-*Last updated: 2026-05-13 from PR #34 review*
+*Last updated: 2026-05-13 from PR #34 review (optimized)*
 
 ### Frontend & CSS
 - Set `fetchpriority="high"` on the primary hero image; never `loading="lazy"` on above-the-fold images.
-- Add `@media (prefers-reduced-motion: reduce)` disabling `scroll-behavior: smooth` and reducing transitions/transforms.
-- Declare a solid-color or legacy fallback before any modern CSS (`color-mix()`, container queries, `:has()`); for gradient text with `-webkit-text-fill-color: transparent`, add a non-`color-mix()` fallback gradient first.
+- Add `@media (prefers-reduced-motion: reduce)` that disables `scroll-behavior: smooth` and reduces transitions/transforms.
+- Declare a solid-color or legacy fallback before any modern CSS (`color-mix()`, container queries, `:has()`); for gradient text using `-webkit-text-fill-color: transparent`, add a non-`color-mix()` fallback gradient first.
 - Use CSS classes for layout/theming; never inline styles. Remove unused custom properties.
 - Never use `href="#"`; use relative links (`index.html`, `./`) for subpath-deployed sites.
 - Link download CTAs to `.../releases/latest/download/<asset>`, not an intermediate release page.
@@ -46,14 +46,13 @@ Project instructions for AI coding agents.
 - **Regex & state:** Declare `NSRegularExpression` as `static let`; observe shared singleton state via `@ObservedObject`/`@StateObject`, never read directly.
 - **Access control:** Declare types used only within one file `private` or `fileprivate`.
 - **Numeric safety:** Clamp decoded integer fields immediately after decoding (e.g., `copyCount = max(1, decoded)`); use overflow-safe arithmetic (`addingReportingOverflow` or `saturatingAdd`) for runtime-incremented counters; apply the same clamping after migration/merge.
-- **Deduplication:** Use SHA256 (CryptoKit) plus `content` equality for dedup checks. On match, update all metadata fields (source app, bundle, type, timestamp) — never only the timestamp. Prefer non-nil over nil for every optional field when collapsing duplicates.
-- **Merge rules:** Define one explicit merge rule per field; keep code, comments, and PR description in agreement.
-- **Post-mutation consistency:** Re-sort with the canonical comparator after any merge/collapse pass. Persist immediately when a load-time migration detects changes.
-- **Hash migration:** When changing a persisted hash algorithm, recompute `contentHash` from `content` for all decoded entries on `load()` — before deduplication — so legacy and new hashes don't coexist.
+- **Deduplication:** Use SHA256 (CryptoKit) plus `content` equality for dedup checks; on match, update all metadata fields — never only the timestamp. Prefer non-nil over nil for every optional field when collapsing duplicates.
+- **Data consistency:** Define one explicit merge rule per field. Re-sort with the canonical comparator after any merge/collapse pass. Persist immediately when a load-time migration detects changes.
+- **Hash migration:** When changing a persisted hash algorithm, recompute `contentHash` from `content` for all decoded entries on `load()` before deduplication — so legacy and new hashes don't coexist.
 - **Lazy embedding:** Skip embedding if a non-nil vector already exists; compute embeddings off the main thread.
-- **Async capture:** Capture computed or lazily-evaluated values (e.g., `filtered.first?.id`) into a `let` constant before dispatching to `DispatchQueue.main.async`; never re-evaluate expensive or stateful expressions inside the async block.
-- **Reused panel state:** When a panel/view is shown/hidden without being re-created, reset all ephemeral `@State` (focus, selection index, query, scroll position) in the panel-opened event handler — not only on first load — so the panel reopens in a consistent initial state.
-- **Event handler ordering:** Never attach multiple `.onReceive` subscriptions to the same notification on sibling views when one handler's output (e.g., a computed scroll target) depends on state mutated by the other; consolidate into a single handler so state resets and dependent actions (scroll, selection) execute in deterministic order.
+- **Async capture:** Capture lazily-evaluated values (e.g., `filtered.first?.id`) into a `let` constant before `DispatchQueue.main.async`; never re-evaluate stateful expressions inside the async block.
+- **Panel state:** On show/hide without re-creation, reset all ephemeral `@State` (focus, selection, query, scroll) in the panel-opened handler — not only on first load.
+- **Event handlers:** Consolidate multiple `.onReceive` subscriptions on sibling views into one handler when one handler's output depends on state mutated by the other.
 
 ### Search, Text Processing & Python
 - Apply identical preprocessing (case folding, whitespace normalization) to both indexed content and queries; preserve original-cased text for embeddings/display.
