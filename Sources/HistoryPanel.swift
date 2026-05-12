@@ -5,25 +5,25 @@ enum ArrowDirection { case up, down }
 
 // MARK: - App icon cache
 
-final class AppIconCache {
+@MainActor
+private final class AppIconCache {
     static let shared = AppIconCache()
-    private var cache: [String: NSImage] = [:]
+    private let cache: NSCache<NSString, NSImage> = {
+        let c = NSCache<NSString, NSImage>()
+        c.countLimit = 128
+        return c
+    }()
     private var misses: Set<String> = []
-    private let lock = NSLock()
 
     private init() {}
 
     func icon(forBundle bundleID: String) -> NSImage? {
-        lock.lock()
-        if let cached = cache[bundleID] {
-            lock.unlock()
+        if let cached = cache.object(forKey: bundleID as NSString) {
             return cached
         }
         if misses.contains(bundleID) {
-            lock.unlock()
             return nil
         }
-        lock.unlock()
 
         let img: NSImage?
         if let url = NSWorkspace.shared.urlForApplication(withBundleIdentifier: bundleID) {
@@ -32,13 +32,11 @@ final class AppIconCache {
             img = nil
         }
 
-        lock.lock()
         if let img = img {
-            cache[bundleID] = img
+            cache.setObject(img, forKey: bundleID as NSString)
         } else {
             misses.insert(bundleID)
         }
-        lock.unlock()
         return img
     }
 }
