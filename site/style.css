@@ -15,7 +15,6 @@
   --kbd-bg: #f0f2f5;
   --kbd-border: rgba(0, 0, 0, 0.12);
   --hero-grad-a: #eef3ff;
-  --hero-grad-b: #ffffff;
   --hero-grad-c: #f7efff;
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.04), 0 1px 1px rgba(0, 0, 0, 0.03);
   --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.08), 0 2px 6px rgba(0, 0, 0, 0.04);
@@ -40,7 +39,6 @@
     --kbd-bg: #1a1f25;
     --kbd-border: rgba(255, 255, 255, 0.14);
     --hero-grad-a: #161a26;
-    --hero-grad-b: #0b0d10;
     --hero-grad-c: #1a1422;
     --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
     --shadow-md: 0 12px 40px rgba(0, 0, 0, 0.45), 0 2px 6px rgba(0, 0, 0, 0.35);
@@ -82,6 +80,7 @@ code, kbd, .mono { font-family: var(--mono); }
   z-index: 10;
   backdrop-filter: saturate(180%) blur(14px);
   -webkit-backdrop-filter: saturate(180%) blur(14px);
+  background: var(--bg); /* fallback for browsers without color-mix() support */
   background: color-mix(in srgb, var(--bg) 78%, transparent);
   border-bottom: 1px solid var(--border);
 }
@@ -368,4 +367,10 @@ kbd {
   .section { padding: 64px 0; }
   .nav-links { gap: 16px; }
   .nav-links a:first-child { display: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  .btn, .feature { transition: none; }
+  .btn:hover, .feature:hover { transform: none; }
 }
