@@ -5,7 +5,7 @@ Project instructions for AI coding agents.
 <!-- BEGIN:COPILOT-RULES -->
 ## Coding Guidelines (AI-maintained)
 *Auto-updated by pr-review-reflect — do not edit this section manually.*
-*Last updated: 2026-05-12 from PR #32 review*
+*Last updated: 2026-05-12 from PR #31 review*
 
 ### Performance & Web Vitals
 - Never apply `loading="lazy"` to above-the-fold images; use `fetchpriority="high"` for the primary hero asset to avoid LCP regressions.
@@ -87,6 +87,7 @@ Project instructions for AI coding agents.
 
 ### Swift Memory Management & Caching
 - Never use an unbounded `Dictionary` to cache images or resources in Swift; use `NSCache` with a `countLimit` (or cache a downscaled/processed representation) to cap memory growth over long runs.
+- When maintaining a negative-lookup (miss) cache alongside a positive cache, bound the miss cache with the same discipline (e.g. a FIFO with a max size, or a sentinel value stored in `NSCache`) so both caches have predictable memory use over long-running sessions.
 - When a Swift type is only used within a single file, declare it `private` or `fileprivate` (or nest it inside the consuming type) to minimize API surface and prevent accidental cross-file coupling.
 
 ### Makefile & Parallel Builds
