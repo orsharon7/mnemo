@@ -94,12 +94,29 @@ struct HistoryPanel: View {
                         onSpace: togglePreview,
                         onPin: pinSelection,
                         onDelete: deleteSelection)
-                .frame(height: 28)
-                .padding(.horizontal, 12)
-                .padding(.top, 10)
-                .padding(.bottom, 6)
+                .frame(height: 26)
+                .padding(.horizontal, 10)
+                .padding(.vertical, 5)
+                .background(
+                    RoundedRectangle(cornerRadius: 6, style: .continuous)
+                        .fill(Color(white: 0.18))
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: 6, style: .continuous)
+                        .strokeBorder(
+                            isSearchFocused
+                                ? Color.accentColor.opacity(0.75)
+                                : Color.primary.opacity(0.08),
+                            lineWidth: 1
+                        )
+                )
+                .padding(.horizontal, 10)
+                .padding(.top, 8)
+                .padding(.bottom, 8)
 
             Color(NSColor.separatorColor).frame(height: 1 / displayScale)
+
+            Spacer().frame(height: 6)
 
             if filtered.isEmpty {
                 VStack {
@@ -399,8 +416,15 @@ struct SearchField: NSViewRepresentable {
 
     func makeNSView(context: Context) -> NSTextField {
         let tf = NSTextField()
-        tf.placeholderString = "Search clipboard history…"
+        tf.placeholderAttributedString = NSAttributedString(
+            string: "Search clipboard history…",
+            attributes: [
+                .foregroundColor: NSColor.secondaryLabelColor,
+                .font: NSFont.systemFont(ofSize: 18, weight: .regular)
+            ]
+        )
         tf.font = NSFont.systemFont(ofSize: 18, weight: .regular)
+        tf.textColor = NSColor.labelColor
         tf.isBordered = false
         tf.drawsBackground = false
         tf.focusRingType = .none
@@ -501,6 +525,16 @@ struct SearchField: NSViewRepresentable {
         func controlTextDidChange(_ obj: Notification) {
             guard let tf = obj.object as? NSTextField else { return }
             parent.text = tf.stringValue
+        }
+
+        func controlTextDidBeginEditing(_ obj: Notification) {
+            let parent = self.parent
+            DispatchQueue.main.async { parent.isFocused = true }
+        }
+
+        func controlTextDidEndEditing(_ obj: Notification) {
+            let parent = self.parent
+            DispatchQueue.main.async { parent.isFocused = false }
         }
 
         @objc func submit(_ sender: Any?) {
