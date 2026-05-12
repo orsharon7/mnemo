@@ -5,7 +5,7 @@ Project instructions for AI coding agents.
 <!-- BEGIN:COPILOT-RULES -->
 ## Coding Guidelines (AI-maintained)
 *Auto-updated by pr-review-reflect — do not edit this section manually.*
-*Last updated: 2026-05-12 from PR #32 review (optimized)*
+*Last updated: 2026-05-12 from PR #33 review (optimized)*
 
 ### Frontend & CSS
 - Set `fetchpriority="high"` on the primary hero image; never use `loading="lazy"` on above-the-fold images.
@@ -44,6 +44,10 @@ Project instructions for AI coding agents.
 - **Caching:** Use `NSCache` with a `countLimit`; memoize negative lookups in a separate bounded `Set<Key>` (`dict[key] = nil` removes the entry, not caches a miss).
 - **Regex & state:** Declare `NSRegularExpression` as `static let`; observe shared singleton state via `@ObservedObject`/`@StateObject`, never read directly.
 - **Access control:** Declare types used only within one file `private` or `fileprivate`.
+- **Decoded integers:** Clamp decoded numeric fields to their documented valid range immediately after decoding (e.g., `copyCount = max(1, decoded)`); apply the same clamping to values produced during migration/merge.
+- **Lazy embedding:** Check for an existing entry (and a non-nil vector) before computing embeddings; skip the embedding call when the entry already has a vector, and perform embedding off the main thread.
+- **Lossless merging:** When collapsing duplicates, prefer non-nil over nil for every optional field (vector, sourceName, type, etc.); never silently discard a richer value from a later duplicate in favour of the first-seen entry's nil.
+- **Sort after mutation:** Re-sort any collection with the canonical comparator after a merge/collapse pass; never leave results in insertion order when the store has a defined sort order (e.g., pinned-first + recency).
 
 ### Search, Text Processing & Python
 - Apply identical preprocessing (case folding, whitespace normalization) to both indexed content and queries; preserve original-cased text separately for embeddings/display.
