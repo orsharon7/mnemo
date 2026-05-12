@@ -43,13 +43,17 @@ final class ClipboardWatcher {
             return
         }
 
+        let frontApp = NSWorkspace.shared.frontmostApplication
+        if let bundleID = frontApp?.bundleIdentifier,
+           Settings.shared.excludedBundleIDs.contains(bundleID) {
+            return
+        }
+
         guard let text = pasteboard.string(forType: .string), !text.isEmpty else { return }
 
         if Settings.shared.blockLikelySecrets && SecretHeuristic.looksLikeSecret(text) {
             return
         }
-
-        let frontApp = NSWorkspace.shared.frontmostApplication
         store.add(text: text,
                   sourceBundle: frontApp?.bundleIdentifier,
                   sourceName: frontApp?.localizedName)
