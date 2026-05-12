@@ -49,7 +49,7 @@ struct ClipEntry: Identifiable, Codable, Equatable {
         isPinned = try c.decodeIfPresent(Bool.self, forKey: .isPinned) ?? false
         type = try c.decodeIfPresent(ClipEntryType.self, forKey: .type) ?? .text
         vector = try c.decodeIfPresent([Float].self, forKey: .vector)
-        copyCount = try c.decodeIfPresent(Int.self, forKey: .copyCount) ?? 1
+        copyCount = max(1, try c.decodeIfPresent(Int.self, forKey: .copyCount) ?? 1)
     }
 }
 
@@ -128,15 +128,17 @@ final class HistoryStore: ObservableObject {
 
         let hash = sha256(text)
         let detectedType = TypeDetector.detect(text)
-        let vector = Embedder.shared.embed(text)
         DispatchQueue.main.async {
             if let idx = self.entries.firstIndex(where: { $0.contentHash == hash }) {
                 var existing = self.entries.remove(at: idx)
                 existing.lastUsedAt = Date()
                 existing.copyCount += 1
-                if existing.vector == nil { existing.vector = vector }
+                if existing.vector == nil {
+                    existing.vector = Embedder.shared.embed(text)
+                }
                 self.insertSorted(existing)
             } else {
+                let vector = Embedder.shared.embed(text)
                 let entry = ClipEntry(id: UUID(),
                                       content: text,
                                       contentHash: hash,
@@ -317,11 +319,16 @@ final class HistoryStore: ObservableObject {
                 merged.copyCount += entry.copyCount
                 if entry.lastUsedAt > merged.lastUsedAt { merged.lastUsedAt = entry.lastUsedAt }
                 if !merged.isPinned && entry.isPinned { merged.isPinned = true }
+                if merged.vector == nil { merged.vector = entry.vector }
                 result[existingIdx] = merged
             } else {
                 seen[entry.contentHash] = result.count
                 result.append(entry)
             }
+        }
+        result.sort { lhs, rhs in
+            if lhs.isPinned != rhs.isPinned { return lhs.isPinned && !rhs.isPinned }
+            return lhs.lastUsedAt > rhs.lastUsedAt
         }
         return result
     }
