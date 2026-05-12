@@ -17,6 +17,9 @@ VERSION="${SPARKLE_VERSION:-2.9.1}"
 FRAMEWORKS_DIR="Frameworks"
 SPARKLE_FRAMEWORK="${FRAMEWORKS_DIR}/Sparkle.framework"
 
+# Pinned SHA256 for Sparkle 2.9.1 tarball — update when bumping VERSION.
+EXPECTED_SHA256="c0dde519fd2a43ddfc6a1eb76aec284d7d888fe281414f9177de3164d98ba4c7"
+
 if [[ -d "${SPARKLE_FRAMEWORK}" ]]; then
   echo "→ Sparkle.framework already present at ${SPARKLE_FRAMEWORK}"
   exit 0
@@ -29,6 +32,13 @@ trap 'rm -rf "${TMP}"' EXIT
 URL="https://github.com/sparkle-project/Sparkle/releases/download/${VERSION}/Sparkle-${VERSION}.tar.xz"
 echo "→ Downloading Sparkle ${VERSION}…"
 curl -L --fail -o "${TMP}/sparkle.tar.xz" "${URL}"
+
+echo "→ Verifying integrity…"
+ACTUAL_SHA256=$(shasum -a 256 "${TMP}/sparkle.tar.xz" | awk '{print $1}')
+if [[ "${ACTUAL_SHA256}" != "${EXPECTED_SHA256}" ]]; then
+  echo "ERROR: SHA256 mismatch! expected=${EXPECTED_SHA256} actual=${ACTUAL_SHA256}" >&2
+  exit 1
+fi
 
 echo "→ Extracting…"
 tar -xf "${TMP}/sparkle.tar.xz" -C "${TMP}"

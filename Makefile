@@ -36,6 +36,7 @@ SWIFTC_FLAGS := \
 .PHONY: all run install clean codesign dirs dmg sparkle
 
 all: dirs sparkle $(BIN) $(CONTENTS)/Info.plist $(RES_DIR)/AppIcon.icns $(FRAMEWORKS_DIR)/Sparkle.framework
+	@$(MAKE) --no-print-directory codesign
 	@echo "→ Built $(APP_BUNDLE)"
 
 dirs:
@@ -50,7 +51,6 @@ $(SPARKLE_FRAMEWORK):
 $(BIN): $(SWIFT_SOURCES) $(SPARKLE_FRAMEWORK)
 	@echo "→ Compiling $(APP_NAME)…"
 	swiftc $(SWIFTC_FLAGS) -o $(BIN) $(SWIFT_SOURCES)
-	@$(MAKE) --no-print-directory codesign
 
 $(CONTENTS)/Info.plist: Info.plist
 	@cp Info.plist $(CONTENTS)/Info.plist

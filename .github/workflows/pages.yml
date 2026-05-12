@@ -1,7 +1,8 @@
 name: Deploy site to GitHub Pages
 
 # Publishes the contents of /site (marketing page + appcast.xml) to GitHub Pages
-# whenever those files change on dev.
+# whenever those files change on dev. Note: the paths filter means this workflow
+# only runs when site/** or this workflow file changes — not on every push to dev.
 
 on:
   push:

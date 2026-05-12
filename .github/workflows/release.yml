@@ -55,10 +55,14 @@ jobs:
           SIG_OUTPUT=$(echo -n "${SPARKLE_ED_PRIVATE_KEY}" | Frameworks/bin/sign_update --ed-key-file - "${DMG}")
           echo "Signature output: ${SIG_OUTPUT}"
           # Output looks like: sparkle:edSignature="…" length="123456"
-          ED_SIG=$(echo "${SIG_OUTPUT}" | sed -E 's/.*edSignature="([^"]+)".*/\1/')
-          LENGTH=$(echo "${SIG_OUTPUT}" | sed -E 's/.*length="([0-9]+)".*/\1/')
+          ED_SIG=$(echo "${SIG_OUTPUT}" | grep -oE 'edSignature="[^"]+"' | grep -oE '"[^"]+"' | tr -d '"')
+          LENGTH=$(echo "${SIG_OUTPUT}" | grep -oE 'length="[0-9]+"' | grep -oE '[0-9]+')
           if [[ -z "${ED_SIG}" || -z "${LENGTH}" ]]; then
             echo "::error::Failed to parse sign_update output." >&2
+            exit 1
+          fi
+          if ! [[ "${LENGTH}" =~ ^[0-9]+$ ]]; then
+            echo "::error::Parsed LENGTH '${LENGTH}' is not numeric." >&2
             exit 1
           fi
           {

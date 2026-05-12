@@ -20,7 +20,6 @@ from __future__ import annotations
 
 import argparse
 import datetime
-import os
 import re
 import sys
 from pathlib import Path
@@ -49,7 +48,7 @@ def build_item(*, version: str, pub_date: str, url: str, ed_sig: str,
         f"            <sparkle:version>{version_bare}</sparkle:version>\n"
         f"            <sparkle:shortVersionString>{version_bare}</sparkle:shortVersionString>\n"
         f"            <sparkle:minimumSystemVersion>{min_os}</sparkle:minimumSystemVersion>\n"
-        f"            <description><![CDATA[{notes.strip()}]]></description>\n"
+        f"            <description><![CDATA[{notes.strip().replace(']]>', ']]]]><![CDATA[>')}]]></description>\n"
         "            <enclosure\n"
         f'                url="{url}"\n'
         f'                sparkle:edSignature="{ed_sig}"\n'
