@@ -309,9 +309,22 @@ final class HistoryStore: ObservableObject {
     private func load() {
         guard let data = try? Data(contentsOf: dbURL) else { return }
         if var decoded = try? JSONDecoder().decode([ClipEntry].self, from: data) {
+            // Migrate legacy (non-SHA-256) hashes: recompute contentHash from content
+            // so that de-dupe works correctly across app versions.
+            let sha256Prefix = CharacterSet(charactersIn: "0123456789abcdef")
+            var needsMigration = false
+            for i in decoded.indices {
+                let h = decoded[i].contentHash
+                // A SHA-256 hex string is exactly 64 lowercase hex characters.
+                // Legacy FNV-1a hashes are shorter (≤ 16 hex chars).
+                if h.count != 64 || !h.unicodeScalars.allSatisfy({ sha256Prefix.contains($0) }) {
+                    decoded[i].contentHash = sha256(decoded[i].content)
+                    needsMigration = true
+                }
+            }
             let collapsed = Self.collapseDuplicates(decoded)
             self.entries = collapsed
-            if collapsed.count != decoded.count {
+            if needsMigration || collapsed.count != decoded.count {
                 persistAsync()
             }
         }
