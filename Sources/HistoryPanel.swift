@@ -99,7 +99,7 @@ struct HistoryPanel: View {
                 .padding(.vertical, 5)
                 .background(
                     RoundedRectangle(cornerRadius: 6, style: .continuous)
-                        .fill(Color(white: 0.18))
+                        .fill(Color(NSColor.controlBackgroundColor))
                 )
                 .overlay(
                     RoundedRectangle(cornerRadius: 6, style: .continuous)
@@ -116,7 +116,7 @@ struct HistoryPanel: View {
 
             Color(NSColor.separatorColor).frame(height: 1 / displayScale)
 
-            Spacer().frame(height: 6)
+            Color.clear.frame(height: 6)
 
             if filtered.isEmpty {
                 VStack {
