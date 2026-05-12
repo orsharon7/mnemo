@@ -224,7 +224,7 @@ struct HistoryPanel: View {
 
     private func scrollToTop(proxy: ScrollViewProxy) {
         // Defer to the next runloop so the List finishes its initial layout
-        // pass before we try to scroll — otherwise the first row can render
+        // before we try to scroll — otherwise the first row can render
         // clipped under the search bar on panel open.
         DispatchQueue.main.async {
             guard let first = filtered.first else { return }
