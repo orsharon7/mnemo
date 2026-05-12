@@ -5,7 +5,7 @@ Project instructions for AI coding agents.
 <!-- BEGIN:COPILOT-RULES -->
 ## Coding Guidelines (AI-maintained)
 *Auto-updated by pr-review-reflect — do not edit this section manually.*
-*Last updated: 2026-05-12 from PR #30 review*
+*Last updated: 2026-05-12 from PR #31 review*
 
 ### Performance & Web Vitals
 - Never apply `loading="lazy"` to above-the-fold images; use `fetchpriority="high"` for the primary hero asset to avoid LCP regressions.
@@ -23,6 +23,7 @@ Project instructions for AI coding agents.
 - Never include unused parameters in callback or closure signatures; simplify to only what callers and callees actually need to reduce coupling.
 - Ensure UI helper text, tooltips, and labels accurately describe the actual implemented behavior — not an idealized or broader behavior — to avoid misleading users about privacy or functionality guarantees.
 - Remove unused imports in all languages (Python, JS, etc.) to avoid dead code and linting failures.
+- Never render separator characters (e.g. `•`, `|`, `/`) unconditionally between optional UI items; only insert a separator between two items that are both present to avoid leading, trailing, or duplicate separators.
 
 ### SwiftUI & Reactive State
 - When reading shared observable state (e.g. a singleton) inside a SwiftUI view body, always observe it via `@ObservedObject` or `@StateObject` so the view re-renders on changes; never access singleton state directly without observation.
@@ -78,6 +79,7 @@ Project instructions for AI coding agents.
 
 ### Swift & Objective-C Interop
 - When a Swift class is used as an `NSMenuItem` target or referenced via `#selector`, ensure it inherits from `NSObject`; without `NSObject` inheritance the selector is not reliably exposed to the Objective-C runtime and will fail at runtime.
+- When using a `Dictionary` as a cache in Swift, always memoize negative lookups separately (e.g., a `Set<Key>` of known-miss keys), because assigning `nil` via the subscript setter removes the key rather than storing the miss, causing the expensive lookup to repeat on every access.
 
 ### Makefile & Parallel Builds
 - When Makefile targets write into directories created by a phony prerequisite (e.g. `dirs`), add order-only prerequisites (`$(TARGET): | dirs`) to every such target so parallel builds (`make -j`) do not race against directory creation.
