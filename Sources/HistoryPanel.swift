@@ -421,7 +421,7 @@ struct SearchField: NSViewRepresentable {
             string: "Search clipboard history…",
             attributes: [
                 .foregroundColor: NSColor.secondaryLabelColor,
-                .font: tf.font!
+                .font: tf.font ?? NSFont.systemFont(ofSize: 18, weight: .regular)
             ]
         )
         tf.textColor = NSColor.labelColor
