@@ -5,7 +5,7 @@ Project instructions for AI coding agents.
 <!-- BEGIN:COPILOT-RULES -->
 ## Coding Guidelines (AI-maintained)
 *Auto-updated by pr-review-reflect — do not edit this section manually.*
-*Last updated: 2026-05-13 from PR #35 review*
+*Last updated: 2026-05-13 from PR #35 review (optimized)*
 
 ### Frontend & CSS
 - Set `fetchpriority="high"` on the primary hero image; never `loading="lazy"` on above-the-fold images.
@@ -50,12 +50,11 @@ Project instructions for AI coding agents.
 - **Async & state:** Capture lazily-evaluated values into a `let` before `DispatchQueue.main.async`. Declare `NSRegularExpression` as `static let`; observe shared singletons via `@ObservedObject`/`@StateObject`. Reset all ephemeral `@State` (focus, selection, query, scroll) in the panel-opened handler on every show. Consolidate dependent `.onReceive` subscriptions on sibling views into one handler.
 - **Layout & access:** Use `Color.clear.frame(height:)` or padding for fixed-height gaps — never `Spacer().frame(height:)`. Declare types used only within one file `private` or `fileprivate`.
 - **Lazy embedding:** Skip embedding if a non-nil vector already exists; compute embeddings off the main thread.
-- **Display scale:** Use `@Environment(\.displayScale)` or the window's `screen?.backingScaleFactor` for per-pixel sizing; never use `NSScreen.main?.backingScaleFactor` (wrong on multi-display setups).
-- **Hairline strokes:** Derive `lineWidth` (and any "1px" border) from the display scale (e.g. `1 / displayScale`) so the stroke is exactly one physical pixel on Retina; never hard-code `lineWidth: 1`.
-- **Focus management:** Gate `makeFirstResponder` in `makeNSView` on the `isFocused` binding; let `updateNSView` drive focus changes to keep representable state consistent.
+- **Display scale & hairlines:** Use `@Environment(\.displayScale)` or `window.screen?.backingScaleFactor` for per-pixel sizing; derive `lineWidth` from display scale (`1 / displayScale`) for exact 1px Retina strokes. Never use `NSScreen.main?.backingScaleFactor` or hard-code `lineWidth: 1`.
+- **Focus management:** Gate `makeFirstResponder` in `makeNSView` on the `isFocused` binding; drive focus changes through `updateNSView`.
 
 ### Search, Text Processing & Python
-- Apply identical preprocessing (case folding, whitespace normalization) to both indexed content and queries; preserve original-cased text for embeddings/display.
+- Preprocess indexed content and queries identically (case folding, whitespace normalization); preserve original-cased text for embeddings/display.
 - Trim whitespace from user input; reject blank/whitespace-only strings before searching or embedding.
 - Split user input on `\s` (including newlines) so tokens are recognized in pasted multi-line input.
 - In regex token-stripping, consume adjacent whitespace in the same substitution; include `\n`/`\r\n` in boundary classes alongside `[ \t]` and `$`.
