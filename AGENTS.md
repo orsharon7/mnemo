@@ -5,7 +5,7 @@ Project instructions for AI coding agents.
 <!-- BEGIN:COPILOT-RULES -->
 ## Coding Guidelines (AI-maintained)
 *Auto-updated by pr-review-reflect — do not edit this section manually.*
-*Last updated: 2026-05-12 from PR #31 review*
+*Last updated: 2026-05-12 from PR #32 review*
 
 ### Performance & Web Vitals
 - Never apply `loading="lazy"` to above-the-fold images; use `fetchpriority="high"` for the primary hero asset to avoid LCP regressions.
@@ -22,6 +22,7 @@ Project instructions for AI coding agents.
 - Never use inline styles in HTML for layout or theming; define CSS classes instead to ensure maintainability and consistent theming across pages.
 - Never include unused parameters in callback or closure signatures; simplify to only what callers and callees actually need to reduce coupling.
 - Ensure UI helper text, tooltips, and labels accurately describe the actual implemented behavior — not an idealized or broader behavior — to avoid misleading users about privacy or functionality guarantees.
+- When a feature exposes a set of user-facing operators or commands, ensure all supported operators are listed in the UI hint/help text; operators implemented in code but absent from the hint are undiscoverable and should either be documented or removed.
 - Remove unused imports in all languages (Python, JS, etc.) to avoid dead code and linting failures.
 - Never render separator characters (e.g. `•`, `|`, `/`) unconditionally between optional UI items; only insert a separator between two items that are both present to avoid leading, trailing, or duplicate separators.
 
