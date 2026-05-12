@@ -5,8 +5,10 @@ enum ArrowDirection { case up, down }
 
 struct HistoryPanel: View {
     @ObservedObject var store: HistoryStore
+    @ObservedObject var panelState: PanelState
     var onPick: (ClipEntry) -> Void
     var onDismiss: () -> Void
+    var onExcludeApp: ((String, String) -> Void)?
 
     @State private var query: String = ""
     @State private var selectionIndex: Int = 0
@@ -74,6 +76,15 @@ struct HistoryPanel: View {
                 Text("⌫ delete").foregroundStyle(.secondary)
                 Text("⌘1–9 quick").foregroundStyle(.secondary)
                 Spacer()
+                if let bundleID = panelState.previousAppBundleID,
+                   let name = panelState.previousAppName,
+                   !Settings.shared.excludedBundleIDs.contains(bundleID) {
+                    Button("Don't capture from \(name)") {
+                        onExcludeApp?(bundleID, name)
+                    }
+                    .buttonStyle(.plain)
+                    .foregroundStyle(.secondary)
+                }
                 Text("\(filtered.count) of \(store.entries.count)")
                     .foregroundStyle(.tertiary)
             }
