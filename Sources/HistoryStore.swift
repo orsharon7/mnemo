@@ -133,6 +133,8 @@ final class HistoryStore: ObservableObject {
                 var existing = self.entries.remove(at: idx)
                 existing.lastUsedAt = Date()
                 existing.copyCount += 1
+                existing.sourceBundle = sourceBundle
+                existing.sourceName = sourceName
                 if existing.vector == nil {
                     existing.vector = Embedder.shared.embed(text)
                 }
@@ -305,8 +307,11 @@ final class HistoryStore: ObservableObject {
     private func load() {
         guard let data = try? Data(contentsOf: dbURL) else { return }
         if var decoded = try? JSONDecoder().decode([ClipEntry].self, from: data) {
-            decoded = Self.collapseDuplicates(decoded)
-            self.entries = decoded
+            let collapsed = Self.collapseDuplicates(decoded)
+            self.entries = collapsed
+            if collapsed.count != decoded.count {
+                persistAsync()
+            }
         }
     }
 
