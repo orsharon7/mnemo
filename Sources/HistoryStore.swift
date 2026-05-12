@@ -179,6 +179,11 @@ final class HistoryStore: ObservableObject {
     /// `types` is the set of type filters, `pinOnly` indicates the /pin operator was present,
     /// and `text` is the remaining free-text query with operators stripped.
     /// Original whitespace is preserved so multi-line snippet searches match correctly.
+    // Precompiled once; reused on every search invocation to avoid per-keystroke regex compilation.
+    private static let operatorRegex = try! NSRegularExpression(
+        pattern: "(?i)(^|\\s)(/url|/json|/code|/email|/text|/multiline|/pin)(?=\\s|$)"
+    )
+
     private static func parseOperators(_ q: String) -> (types: Set<ClipEntryType>, pinOnly: Bool, text: String) {
         var types: Set<ClipEntryType> = []
         var pinOnly = false
@@ -200,14 +205,9 @@ final class HistoryStore: ObservableObject {
         // so multi-line free-text queries (e.g. "a\nb") are not collapsed to "a b".
         // Pattern: match operator preceded by start-of-string or whitespace (captured as $1),
         // followed by whitespace or end-of-string — replace with just $1 to keep the surrounding space.
-        let operatorPattern = "(?i)(^|\\s)(/url|/json|/code|/email|/text|/multiline|/pin)(?=\\s|$)"
-        let freeText: String
-        if let regex = try? NSRegularExpression(pattern: operatorPattern) {
-            let range = NSRange(q.startIndex..., in: q)
-            freeText = regex.stringByReplacingMatches(in: q, range: range, withTemplate: "$1")
-        } else {
-            freeText = q
-        }
+        // The regex is cached as a static constant to avoid recompiling it on every search invocation.
+        let range = NSRange(q.startIndex..., in: q)
+        let freeText = Self.operatorRegex.stringByReplacingMatches(in: q, range: range, withTemplate: "$1")
         return (types, pinOnly, freeText)
     }
 
@@ -216,22 +216,23 @@ final class HistoryStore: ObservableObject {
         if trimmed.isEmpty { return entries }
 
         let (typeFilters, pinOnly, freeText) = Self.parseOperators(trimmed)
+        let freeTextTrimmed = freeText.trimmingCharacters(in: .whitespacesAndNewlines)
 
         var pool = entries
         if !typeFilters.isEmpty { pool = pool.filter { typeFilters.contains($0.type) } }
         if pinOnly            { pool = pool.filter { $0.isPinned } }
 
-        if freeText.isEmpty { return pool }
+        if freeTextTrimmed.isEmpty { return pool }
 
-        let needle = freeText.lowercased()
+        let needle = freeTextTrimmed.lowercased()
 
         let substring = pool.filter { $0.content.lowercased().contains(needle) }
 
         let useSemantic = Settings.shared.semanticSearchEnabled
             && Embedder.shared.isAvailable
-            && freeText.count >= 3
+            && freeTextTrimmed.count >= 3
 
-        if useSemantic, let qv = Embedder.shared.embed(freeText) {
+        if useSemantic, let qv = Embedder.shared.embed(freeTextTrimmed) {
             let threshold: Float = 0.30
             var scored: [(ClipEntry, Float)] = []
             scored.reserveCapacity(pool.count)
