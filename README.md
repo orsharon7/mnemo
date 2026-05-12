@@ -22,6 +22,7 @@ P0 stories implemented & verified:
 P1 stories shipped:
 
 - ✅ US-10 Honor `org.nspasteboard.ConcealedType` **+ heuristic secret blocker** (prefixes + Shannon entropy)
+- ✅ **Per-app exclusion list** — skip clipboard capture when the frontmost app's bundle ID is on the exclusion list (Preferences → Excluded Apps)
 - ✅ US-11 Launch at login (`SMAppService.mainApp`)
 - ✅ US-12 Preferences window — configurable hotkey, retention, auto-paste, launch-at-login, secret-blocker toggle, **semantic-search toggle**
 - ✅ Auto-paste via synthetic ⌘V (opt-in, gated on Accessibility)
@@ -83,6 +84,26 @@ First launch puts an icon in the menu bar. Press **⌥⌘V** anywhere to open th
 - Up to 1 MB per entry — longer is truncated and flagged.
 - 30-day retention (soft — applied once cap exceeded).
 
+## Releases
+
+Releases are built and published automatically by GitHub Actions whenever a `v*` tag is pushed.
+
+To cut a new release:
+
+```bash
+git tag v0.5.0
+git push origin v0.5.0
+```
+
+The [`Release` workflow](.github/workflows/release.yml) runs on `macos-latest`, builds `build/Mnemo.app` via `make`, packages it into `Mnemo-vX.Y.Z.dmg` using [`create-dmg`](https://github.com/create-dmg/create-dmg) (with an `hdiutil` fallback), and attaches the DMG to a freshly-created GitHub Release for the tag.
+
+To build a DMG locally for testing:
+
+```bash
+make
+scripts/make-dmg.sh v0.5.0   # → build/Mnemo-v0.5.0.dmg
+```
+
 ## Roadmap
 
 See the Obsidian vault `07 - Backlog & Roadmap.md`. Next up:
@@ -94,3 +115,7 @@ See the Obsidian vault `07 - Backlog & Roadmap.md`. Next up:
 - Migrate persistence to SQLite + FTS5 once entries grow
 - Notarized DMG + Homebrew cask
 - iCloud sync (opt-in, end-to-end encrypted)
+
+## License
+
+Mnemo is released under the [MIT License](LICENSE).

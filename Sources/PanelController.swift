@@ -1,10 +1,16 @@
 import AppKit
 import SwiftUI
 
+final class PanelState: ObservableObject {
+    @Published var previousAppName: String?
+    @Published var previousAppBundleID: String?
+}
+
 final class PanelController {
     private let store: HistoryStore
     private var panel: NSPanel?
     private var previousApp: NSRunningApplication?
+    private let panelState = PanelState()
 
     init(store: HistoryStore) {
         self.store = store
@@ -20,6 +26,8 @@ final class PanelController {
 
     func show() {
         previousApp = NSWorkspace.shared.frontmostApplication
+        panelState.previousAppName = previousApp?.localizedName
+        panelState.previousAppBundleID = previousApp?.bundleIdentifier
 
         let panel = self.panel ?? makePanel()
         self.panel = panel
@@ -67,10 +75,14 @@ final class PanelController {
         panel.standardWindowButton(.zoomButton)?.isHidden = true
         panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .transient]
 
-        let content = HistoryPanel(store: store, onPick: { [weak self] entry in
+        let content = HistoryPanel(store: store, panelState: panelState, onPick: { [weak self] entry in
             self?.commit(entry: entry)
         }, onDismiss: { [weak self] in
             self?.hide()
+        }, onExcludeApp: { bundleID in
+            var ids = Settings.shared.excludedBundleIDs
+            if !ids.contains(bundleID) { ids.append(bundleID) }
+            Settings.shared.excludedBundleIDs = ids
         })
         let host = NSHostingView(rootView: content)
         host.frame = contentRect

@@ -5,6 +5,9 @@ build/
 *.swiftdoc
 *.dSYM/
 
+# Sparkle framework (fetched by scripts/fetch-sparkle.sh)
+Frameworks/
+
 # macOS
 .DS_Store
 ._*

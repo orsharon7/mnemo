@@ -1,0 +1,140 @@
+name: Release
+
+# Cuts a GitHub Release whenever a v* tag is pushed.
+# Builds Mnemo.app via the existing Makefile (ad-hoc signed), packages it
+# into a DMG (preferring create-dmg, with an hdiutil fallback), and uploads
+# the DMG as a release asset.
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Build and publish DMG
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Resolve tag
+        id: tag
+        run: echo "name=${GITHUB_REF_NAME}" >> "${GITHUB_OUTPUT}"
+
+      - name: Install create-dmg
+        run: brew install create-dmg || true
+
+      - name: Fetch Sparkle framework + tools
+        run: bash scripts/fetch-sparkle.sh
+
+      - name: Build Mnemo.app
+        run: make
+
+      - name: Package DMG
+        run: scripts/make-dmg.sh "${{ steps.tag.outputs.name }}"
+
+      - name: Verify DMG exists
+        run: ls -lh "build/Mnemo-${{ steps.tag.outputs.name }}.dmg"
+
+      - name: Sign DMG with Sparkle EdDSA key
+        id: sign
+        env:
+          SPARKLE_ED_PRIVATE_KEY: ${{ secrets.SPARKLE_ED_PRIVATE_KEY }}
+        run: |
+          if [[ -z "${SPARKLE_ED_PRIVATE_KEY}" ]]; then
+            echo "::error::SPARKLE_ED_PRIVATE_KEY secret is not set; cannot sign update." >&2
+            exit 1
+          fi
+          DMG="build/Mnemo-${{ steps.tag.outputs.name }}.dmg"
+          # sign_update accepts the private key on stdin via --ed-key-file -
+          SIG_OUTPUT=$(echo -n "${SPARKLE_ED_PRIVATE_KEY}" | Frameworks/bin/sign_update --ed-key-file - "${DMG}")
+          echo "Signature output: ${SIG_OUTPUT}"
+          # Output looks like: sparkle:edSignature="…" length="123456"
+          ED_SIG=$(echo "${SIG_OUTPUT}" | grep -oE 'edSignature="[^"]+"' | grep -oE '"[^"]+"' | tr -d '"')
+          LENGTH=$(echo "${SIG_OUTPUT}" | grep -oE 'length="[0-9]+"' | grep -oE '[0-9]+')
+          if [[ -z "${ED_SIG}" || -z "${LENGTH}" ]]; then
+            echo "::error::Failed to parse sign_update output." >&2
+            exit 1
+          fi
+          if ! [[ "${LENGTH}" =~ ^[0-9]+$ ]]; then
+            echo "::error::Parsed LENGTH '${LENGTH}' is not numeric." >&2
+            exit 1
+          fi
+          {
+            echo "ed_sig=${ED_SIG}"
+            echo "length=${LENGTH}"
+          } >> "${GITHUB_OUTPUT}"
+
+      - name: Extract release notes from CHANGELOG
+        id: changelog
+        run: |
+          VERSION="${{ steps.tag.outputs.name }}"
+          VERSION_BARE="${VERSION#v}"
+          NOTES=$(awk -v ver="## [${VERSION_BARE}]" 'index($0,ver)==1{found=1;next} found && /^## \[/{exit} found{print}' CHANGELOG.md)
+          if [[ -z "${NOTES}" ]]; then
+            NOTES="See CHANGELOG.md for details."
+          fi
+          {
+            echo "notes<<EOF"
+            echo "${NOTES}"
+            echo "EOF"
+          } >> "${GITHUB_OUTPUT}"
+
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.tag.outputs.name }}
+          name: Mnemo ${{ steps.tag.outputs.name }}
+          body: ${{ steps.changelog.outputs.notes }}
+          files: build/Mnemo-${{ steps.tag.outputs.name }}.dmg
+
+      - name: Update site/appcast.xml
+        env:
+          VERSION: ${{ steps.tag.outputs.name }}
+          ED_SIG: ${{ steps.sign.outputs.ed_sig }}
+          LENGTH: ${{ steps.sign.outputs.length }}
+          NOTES: ${{ steps.changelog.outputs.notes }}
+        run: |
+          DMG_URL="https://github.com/${GITHUB_REPOSITORY}/releases/download/${VERSION}/Mnemo-${VERSION}.dmg"
+          # The script writes the updated appcast to site/appcast.xml; we then
+          # copy it into a temp file and restore site/appcast.xml to its
+          # committed state so that `git checkout dev` cannot be blocked by
+          # local modifications.
+          APPCAST_TMP="$(mktemp)"
+          python3 scripts/update-appcast.py \
+            --appcast site/appcast.xml \
+            --version "${VERSION}" \
+            --url "${DMG_URL}" \
+            --ed-signature "${ED_SIG}" \
+            --length "${LENGTH}" \
+            --notes "${NOTES}" \
+            --min-os 14.0
+          cp site/appcast.xml "${APPCAST_TMP}"
+          # Reset site/appcast.xml to its committed state (handles both tracked and
+          # untracked cases) so `git checkout dev` cannot be blocked by local modifications.
+          git checkout -- site/appcast.xml 2>/dev/null || git clean -f site/appcast.xml
+          echo "appcast_tmp=${APPCAST_TMP}" >> "${GITHUB_OUTPUT}"
+          echo "--- appcast (temp) ---"
+          cat "${APPCAST_TMP}"
+        id: appcast
+
+      - name: Commit appcast.xml back to dev
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git fetch origin dev
+          git checkout dev
+          mkdir -p site
+          cp "${{ steps.appcast.outputs.appcast_tmp }}" site/appcast.xml
+          git add site/appcast.xml
+          if git diff --cached --quiet; then
+            echo "→ appcast.xml unchanged, nothing to commit"
+          else
+            git commit -m "chore(release): update appcast.xml for ${{ steps.tag.outputs.name }}"
+            git push origin dev
+          fi

@@ -1,11 +1,23 @@
 import SwiftUI
 import AppKit
 import Carbon.HIToolbox
+import UniformTypeIdentifiers
+
+extension Bundle {
+    /// CFBundleShortVersionString from Info.plist (e.g. "0.6.0"). Falls back to
+    /// CFBundleVersion or "?" so the UI never crashes on a malformed bundle.
+    var appVersion: String {
+        (object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String)
+            ?? (object(forInfoDictionaryKey: "CFBundleVersion") as? String)
+            ?? "?"
+    }
+}
 
 struct PreferencesView: View {
     @ObservedObject var settings: Settings = .shared
     @State private var recording = false
     @State private var accessibilityTrusted = Paster.isAccessibilityTrusted
+    @State private var selectedExcludedBundleID: String?
 
     var body: some View {
         Form {
@@ -53,6 +65,28 @@ struct PreferencesView: View {
                     .foregroundStyle(.secondary)
             }
 
+            Section("Excluded Apps") {
+                Text("Clipboard changes are not captured when one of these apps is frontmost.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                List(selection: $selectedExcludedBundleID) {
+                    ForEach(settings.excludedBundleIDs, id: \.self) { bundleID in
+                        Text(bundleID).tag(bundleID as String?)
+                    }
+                }
+                .frame(minHeight: 100, maxHeight: 160)
+                HStack {
+                    Button("Add…") { addExcludedApp() }
+                    Button("Remove") {
+                        if let sel = selectedExcludedBundleID {
+                            settings.excludedBundleIDs.removeAll { $0 == sel }
+                            selectedExcludedBundleID = nil
+                        }
+                    }
+                    .disabled(selectedExcludedBundleID == nil)
+                }
+            }
+
             Section("Search") {
                 Toggle("Semantic search (on-device)",
                        isOn: $settings.semanticSearchEnabled)
@@ -73,7 +107,7 @@ struct PreferencesView: View {
             Section {
                 HStack {
                     Spacer()
-                    Text("Mnemo v0.4.0 — local clipboard history. No cloud, ever.")
+                    Text("Mnemo v\(Bundle.main.appVersion) — local clipboard history. No cloud, ever.")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                     Spacer()
@@ -83,6 +117,21 @@ struct PreferencesView: View {
         .formStyle(.grouped)
         .frame(width: 520, height: 500)
         .onAppear { accessibilityTrusted = Paster.isAccessibilityTrusted }
+    }
+
+    private func addExcludedApp() {
+        let panel = NSOpenPanel()
+        panel.title = "Choose an application to exclude"
+        panel.allowedContentTypes = [.applicationBundle]
+        panel.allowsMultipleSelection = false
+        panel.canChooseDirectories = false
+        panel.canChooseFiles = true
+        panel.directoryURL = URL(fileURLWithPath: "/Applications")
+        guard panel.runModal() == .OK, let url = panel.url else { return }
+        guard let bundleID = Bundle(url: url)?.bundleIdentifier else { return }
+        if !settings.excludedBundleIDs.contains(bundleID) {
+            settings.excludedBundleIDs.append(bundleID)
+        }
     }
 }
 

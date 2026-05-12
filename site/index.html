@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Mnemo — A tiny native macOS clipboard manager</title>
+  <meta name="description" content="A tiny native macOS clipboard manager. Local-only. Lightning fast. Menu-bar only, global hotkey, hybrid search with on-device semantic ranking." />
+  <meta name="theme-color" content="#0b0d10" media="(prefers-color-scheme: dark)" />
+  <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header class="nav">
+    <div class="container nav-inner">
+      <a class="brand" href="./index.html">
+        <span class="brand-mark" aria-hidden="true">⌘</span>
+        <span class="brand-name">Mnemo</span>
+      </a>
+      <nav class="nav-links" aria-label="Primary">
+        <a href="#features">Features</a>
+        <a href="#why">Why Mnemo</a>
+        <a href="https://github.com/orsharon7/mnemo" rel="noopener">GitHub</a>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <section class="hero">
+      <div class="container hero-inner">
+        <p class="eyebrow">macOS · Menu bar · 100% local</p>
+        <h1 class="hero-title">Mnemo</h1>
+        <p class="hero-tagline">A tiny native macOS clipboard manager.<br /><span class="muted">Local-only. Lightning fast.</span></p>
+        <p class="hero-sub">
+          Lives in your menu bar, captures every copy in the background, and lets you summon
+          a search-and-paste panel with a global hotkey
+          <kbd class="hotkey">⌥⌘V</kbd>.
+        </p>
+        <div class="cta-row">
+          <a class="btn btn-primary" href="https://github.com/orsharon7/mnemo/releases/latest/download/Mnemo.dmg" rel="noopener">
+            Download latest release
+          </a>
+          <a class="btn btn-ghost" href="https://github.com/orsharon7/mnemo" rel="noopener">
+            View on GitHub
+          </a>
+        </div>
+        <div class="hero-art" aria-hidden="true">
+          <img src="assets/screenshot-placeholder.svg" alt="" fetchpriority="high" />
+        </div>
+      </div>
+    </section>
+
+    <section id="features" class="section">
+      <div class="container">
+        <h2 class="section-title">Built for the keyboard</h2>
+        <p class="section-lede">Six things Mnemo does well, and nothing it doesn't.</p>
+        <ul class="features">
+          <li class="feature">
+            <div class="feature-icon" aria-hidden="true">▾</div>
+            <h3>Menu-bar only</h3>
+            <p>No Dock icon, no window clutter. Mnemo lives quietly in your menu bar and stays out of your way.</p>
+          </li>
+          <li class="feature">
+            <div class="feature-icon" aria-hidden="true">⌥⌘V</div>
+            <h3>Global hotkey</h3>
+            <p>Summon the search panel from anywhere with <kbd>⌥⌘V</kbd>. Rebind it in Preferences to whatever fits your hands.</p>
+          </li>
+          <li class="feature">
+            <div class="feature-icon" aria-hidden="true">⌕</div>
+            <h3>Hybrid search</h3>
+            <p>Substring match first, then on-device semantic ranking, then fuzzy subsequence fallback. Always finds it.</p>
+          </li>
+          <li class="feature">
+            <div class="feature-icon" aria-hidden="true">★</div>
+            <h3>Pin favorites</h3>
+            <p>Press <kbd>⌘P</kbd> to pin entries. Pinned items sort to the top and survive Clear History and retention caps.</p>
+          </li>
+          <li class="feature">
+            <div class="feature-icon" aria-hidden="true">{ }</div>
+            <h3>Type detection</h3>
+            <p>Every capture is auto-tagged at the source: <span class="badge">URL</span> <span class="badge">JSON</span> <span class="badge">CODE</span> <span class="badge">EMAIL</span>.</p>
+          </li>
+          <li class="feature">
+            <div class="feature-icon" aria-hidden="true">⌂</div>
+            <h3>100% local, no cloud</h3>
+            <p>History stays on your Mac in <code>~/Library/Application Support</code>. No accounts, no network, no telemetry.</p>
+          </li>
+        </ul>
+      </div>
+    </section>
+
+    <section id="why" class="section section-alt">
+      <div class="container">
+        <h2 class="section-title">Why Mnemo?</h2>
+        <div class="why-grid">
+          <div class="why-item">
+            <h3>The clipboard is a tool, not a product.</h3>
+            <p>
+              Modern clipboard managers ship sync, sharing, integrations, and a sign-in screen.
+              Mnemo doesn't. It's the small, native, keyboard-first utility that just remembers
+              what you copied so you can paste it again — the Alfred clipboard experience as a
+              standalone app.
+            </p>
+          </div>
+          <div class="why-item">
+            <h3>Local by default. Private by design.</h3>
+            <p>
+              Mnemo runs with <strong>zero permissions</strong> out of the box. The only optional
+              permission is Accessibility, and only if you opt into auto-paste. Concealed
+              pasteboard items and likely secrets are filtered before they ever hit disk.
+            </p>
+          </div>
+          <div class="why-item">
+            <h3>Fast where it matters.</h3>
+            <p>
+              Press the hotkey, type a few characters, hit <kbd>⏎</kbd>. Mnemo copies, dismisses,
+              and refocuses the previous app in one motion. Optional auto-paste turns that into
+              a single keystroke.
+            </p>
+          </div>
+          <div class="why-item">
+            <h3>Native, minimal, free.</h3>
+            <p>
+              Built with Swift and AppKit. No Electron, no background services, no subscription.
+              On-device semantic search uses Apple's <code>NLEmbedding</code> — no API key, no
+              network call, ever.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section cta-section">
+      <div class="container cta-block">
+        <h2>Try Mnemo</h2>
+        <p>Requires macOS 14+. Free and open source.</p>
+        <div class="cta-row">
+          <a class="btn btn-primary" href="https://github.com/orsharon7/mnemo/releases/latest/download/Mnemo.dmg" rel="noopener">
+            Download latest release
+          </a>
+          <a class="btn btn-ghost" href="https://github.com/orsharon7/mnemo" rel="noopener">
+            Source on GitHub
+          </a>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="container footer-inner">
+      <p>© Or Sharon 2026</p>
+      <p><a href="privacy.html">Privacy</a> · <a href="https://github.com/orsharon7/mnemo" rel="noopener">github.com/orsharon7/mnemo</a></p>
+    </div>
+  </footer>
+</body>
+</html>
