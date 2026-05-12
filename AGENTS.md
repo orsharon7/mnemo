@@ -5,7 +5,7 @@ Project instructions for AI coding agents.
 <!-- BEGIN:COPILOT-RULES -->
 ## Coding Guidelines (AI-maintained)
 *Auto-updated by pr-review-reflect — do not edit this section manually.*
-*Last updated: 2026-05-12 from PR #34 review*
+*Last updated: 2026-05-12 from PR #35 review*
 
 ### Frontend & CSS
 - Set `fetchpriority="high"` on the primary hero image; never use `loading="lazy"` on above-the-fold images.
@@ -51,6 +51,9 @@ Project instructions for AI coding agents.
 - **Lazy embedding:** Check for a non-nil vector before computing embeddings; skip if already present and perform embedding off the main thread.
 - **Post-mutation consistency:** Re-sort with the canonical comparator after any merge/collapse pass. Persist immediately when a load-time migration detects changes; don't wait for the next user-triggered save.
 - **Hash algorithm migration:** When changing a persisted hash algorithm (e.g., upgrading to SHA-256), recompute `contentHash` from `content` for all decoded entries on `load()` — before deduplication or collapse — so legacy and new hashes don't coexist and break dedup/`copyCount` increment across versions.
+- **Pixel density:** Use the backing scale factor (or an AppKit hairline view) for 1-pixel separators; `.frame(height: 1)` is 1 point (2 physical pixels on Retina), not a true hairline.
+- **Focus/first-responder:** Drive first-responder from a binding (`isFocused`); never reassert it unconditionally during view updates, or resign callbacks (`controlTextDidEndEditing`) may never fire and focus state becomes inaccurate.
+- **Font consistency:** Set a text field's font once on the control; derive the attributed placeholder from `tf.font` rather than duplicating the font literal, so placeholder and field font stay in sync.
 
 ### Search, Text Processing & Python
 - Apply identical preprocessing (case folding, whitespace normalization) to both indexed content and queries; preserve original-cased text separately for embeddings/display.
