@@ -14,23 +14,26 @@ struct ClipEntry: Identifiable, Codable, Equatable {
     var isPinned: Bool
     var type: ClipEntryType
     var vector: [Float]?
+    /// Number of times this content has been copied (≥ 1). Shown as a badge when > 1.
+    var copyCount: Int
 
     init(id: UUID, content: String, contentHash: String,
          sourceBundle: String?, sourceName: String?,
          createdAt: Date, lastUsedAt: Date,
          truncated: Bool, isPinned: Bool = false,
          type: ClipEntryType = .text,
-         vector: [Float]? = nil) {
+         vector: [Float]? = nil,
+         copyCount: Int = 1) {
         self.id = id; self.content = content; self.contentHash = contentHash
         self.sourceBundle = sourceBundle; self.sourceName = sourceName
         self.createdAt = createdAt; self.lastUsedAt = lastUsedAt
         self.truncated = truncated; self.isPinned = isPinned; self.type = type
-        self.vector = vector
+        self.vector = vector; self.copyCount = copyCount
     }
 
     private enum CodingKeys: String, CodingKey {
         case id, content, contentHash, sourceBundle, sourceName,
-             createdAt, lastUsedAt, truncated, isPinned, type, vector
+             createdAt, lastUsedAt, truncated, isPinned, type, vector, copyCount
     }
 
     init(from decoder: Decoder) throws {
@@ -46,6 +49,7 @@ struct ClipEntry: Identifiable, Codable, Equatable {
         isPinned = try c.decodeIfPresent(Bool.self, forKey: .isPinned) ?? false
         type = try c.decodeIfPresent(ClipEntryType.self, forKey: .type) ?? .text
         vector = try c.decodeIfPresent([Float].self, forKey: .vector)
+        copyCount = try c.decodeIfPresent(Int.self, forKey: .copyCount) ?? 1
     }
 }
 
@@ -127,9 +131,9 @@ final class HistoryStore: ObservableObject {
         let vector = Embedder.shared.embed(text)
         DispatchQueue.main.async {
             if let idx = self.entries.firstIndex(where: { $0.contentHash == hash }) {
-                // Preserve pin state on dedupe; refresh recency.
                 var existing = self.entries.remove(at: idx)
                 existing.lastUsedAt = Date()
+                existing.copyCount += 1
                 if existing.vector == nil { existing.vector = vector }
                 self.insertSorted(existing)
             } else {
@@ -298,9 +302,28 @@ final class HistoryStore: ObservableObject {
 
     private func load() {
         guard let data = try? Data(contentsOf: dbURL) else { return }
-        if let decoded = try? JSONDecoder().decode([ClipEntry].self, from: data) {
+        if var decoded = try? JSONDecoder().decode([ClipEntry].self, from: data) {
+            decoded = Self.collapseDuplicates(decoded)
             self.entries = decoded
         }
+    }
+
+    private static func collapseDuplicates(_ entries: [ClipEntry]) -> [ClipEntry] {
+        var seen: [String: Int] = [:]
+        var result: [ClipEntry] = []
+        for entry in entries {
+            if let existingIdx = seen[entry.contentHash] {
+                var merged = result[existingIdx]
+                merged.copyCount += entry.copyCount
+                if entry.lastUsedAt > merged.lastUsedAt { merged.lastUsedAt = entry.lastUsedAt }
+                if !merged.isPinned && entry.isPinned { merged.isPinned = true }
+                result[existingIdx] = merged
+            } else {
+                seen[entry.contentHash] = result.count
+                result.append(entry)
+            }
+        }
+        return result
     }
 
     private func sha256(_ s: String) -> String {

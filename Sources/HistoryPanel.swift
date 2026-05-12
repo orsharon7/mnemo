@@ -226,6 +226,16 @@ struct HistoryRow: View {
                             )
                             .foregroundStyle(isSelected ? .white : .accentColor)
                     }
+                    if entry.copyCount > 1 {
+                        Text("\(entry.copyCount)×")
+                            .font(.system(size: 9, weight: .semibold, design: .monospaced))
+                            .padding(.horizontal, 4).padding(.vertical, 1)
+                            .background(
+                                RoundedRectangle(cornerRadius: 3)
+                                    .fill(isSelected ? Color.white.opacity(0.20) : Color.secondary.opacity(0.12))
+                            )
+                            .foregroundStyle(isSelected ? .white : .secondary)
+                    }
                     if let src = entry.sourceName {
                         Text(src)
                         Text("•")
