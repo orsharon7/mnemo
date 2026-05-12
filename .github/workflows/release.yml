@@ -101,9 +101,10 @@ jobs:
           NOTES: ${{ steps.changelog.outputs.notes }}
         run: |
           DMG_URL="https://github.com/${GITHUB_REPOSITORY}/releases/download/${VERSION}/Mnemo-${VERSION}.dmg"
-          # Generate directly into a temp file to avoid writing an untracked
-          # site/appcast.xml into the tag checkout (which `git checkout -- .`
-          # would not remove, causing `git checkout dev` to fail).
+          # The script writes the updated appcast to site/appcast.xml; we then
+          # copy it into a temp file and restore site/appcast.xml to its
+          # committed state so that `git checkout dev` cannot be blocked by
+          # local modifications.
           APPCAST_TMP="$(mktemp)"
           python3 scripts/update-appcast.py \
             --appcast site/appcast.xml \

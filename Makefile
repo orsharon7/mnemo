@@ -35,7 +35,7 @@ SWIFTC_FLAGS := \
 
 .PHONY: all run install clean codesign dirs dmg sparkle
 
-all: dirs sparkle $(BIN) $(CONTENTS)/Info.plist $(RES_DIR)/AppIcon.icns $(FRAMEWORKS_DIR)/Sparkle.framework
+all: dirs $(BIN) $(CONTENTS)/Info.plist $(RES_DIR)/AppIcon.icns $(FRAMEWORKS_DIR)/Sparkle.framework
 	@$(MAKE) --no-print-directory codesign
 	@echo "→ Built $(APP_BUNDLE)"
 
