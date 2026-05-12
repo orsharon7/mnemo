@@ -178,7 +178,8 @@ final class HistoryStore: ObservableObject {
     /// Returns `(types: Set<ClipEntryType>, pinOnly: Bool, text: String)` where
     /// `types` is the set of type filters, `pinOnly` indicates the /pin operator was present,
     /// and `text` is the remaining free-text query with operators stripped.
-    /// Original whitespace is preserved so multi-line snippet searches match correctly.
+    /// Internal whitespace (including newlines) is preserved so multi-line snippet searches
+    /// match correctly; leading/trailing whitespace is trimmed by the caller before matching.
     // Precompiled once; reused on every search invocation to avoid per-keystroke regex compilation.
     private static let operatorRegex = try! NSRegularExpression(
         pattern: "(?i)(^|\\s)(/url|/json|/code|/email|/text|/multiline|/pin)(?:[ \\t]|(?=[\\r\\n])|$)"
@@ -204,7 +205,7 @@ final class HistoryStore: ObservableObject {
         // Remove operator tokens from the original string, preserving all internal whitespace,
         // so multi-line free-text queries (e.g. "a\nb") are not collapsed to "a b".
         // Pattern: match operator preceded by start-of-string or whitespace (captured as $1),
-        // followed by a non-newline space/tab or end-of-string (consumed, not a lookahead) — replace with
+        // followed by a non-newline space/tab, a newline boundary (lookahead `(?=[\\r\\n])`), or end-of-string — replace with
         // just $1 so the surrounding text is joined by at most one space, avoiding doubled whitespace.
         // The regex is cached as a static constant to avoid recompiling it on every search invocation.
         let range = NSRange(q.startIndex..., in: q)
