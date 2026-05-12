@@ -5,7 +5,7 @@ Project instructions for AI coding agents.
 <!-- BEGIN:COPILOT-RULES -->
 ## Coding Guidelines (AI-maintained)
 *Auto-updated by pr-review-reflect — do not edit this section manually.*
-*Last updated: 2026-05-12 from PR #32 review (optimized)*
+*Last updated: 2026-05-12 from PR #32 review*
 
 ### Frontend, HTML & Navigation
 - Set `fetchpriority="high"` on the primary hero image; never `loading="lazy"` on above-the-fold images.
@@ -56,6 +56,7 @@ Project instructions for AI coding agents.
 - Trim whitespace from user input and reject blank strings (not just `.isEmpty`) before searching or embedding — whitespace-only needles produce unintended matches.
 - Split user input on `\s` (including newlines) so tokens are recognized in pasted multi-line input.
 - When stripping tokens via regex, consume adjacent whitespace in the same substitution to prevent doubled spaces.
+- When matching operator/token boundaries in regex, include `\n`/`\r\n` alongside `[ \t]` and `$`; operators followed by a newline won't be stripped if newlines are not in the boundary character class, leaving operator text in the remaining needle.
 - Pass `encoding="utf-8"` (and `newline="\n"` for stable diffs) to `open()`, `Path.read_text()`, and `Path.write_text()`.
 - Escape/split `]]>` before inserting arbitrary text into XML CDATA sections.
 
