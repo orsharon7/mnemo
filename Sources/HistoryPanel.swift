@@ -75,6 +75,7 @@ struct HistoryPanel: View {
     @State private var selectionIndex: Int = 0
     @State private var previewing: ClipEntry?
     @State private var isSearchFocused: Bool = true
+    @State private var scrollToTopToken: Int = 0
 
     private var filtered: [ClipEntry] {
         store.search(query)
@@ -127,6 +128,11 @@ struct HistoryPanel: View {
                         guard newValue < filtered.count else { return }
                         proxy.scrollTo(filtered[newValue].id, anchor: .center)
                     }
+                    .onChange(of: scrollToTopToken) { _, _ in
+                        if let firstID = filtered.first?.id {
+                            proxy.scrollTo(firstID, anchor: .top)
+                        }
+                    }
                 }
             }
 
@@ -163,6 +169,7 @@ struct HistoryPanel: View {
             selectionIndex = 0
             previewing = nil
             isSearchFocused = true
+            scrollToTopToken &+= 1
         }
         .sheet(item: $previewing) { entry in
             QuickLookView(entry: entry) { previewing = nil }
