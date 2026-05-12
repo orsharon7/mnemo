@@ -4,6 +4,8 @@ import Carbon.HIToolbox
 
 final class AppDelegate: NSObject, NSApplicationDelegate {
 
+    private let updater = Updater.shared
+
     private var statusItem: NSStatusItem!
     private var panelController: PanelController!
     private var watcher: ClipboardWatcher!
@@ -117,6 +119,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                                keyEquivalent: "")
         about.target = self
         menu.addItem(about)
+
+        let checkUpdates = NSMenuItem(title: "Check for Updates…",
+                                      action: #selector(Updater.checkForUpdates(_:)),
+                                      keyEquivalent: "")
+        checkUpdates.target = updater
+        menu.addItem(checkUpdates)
 
         menu.addItem(NSMenuItem(title: "Quit Mnemo",
                                 action: #selector(NSApplication.terminate(_:)),

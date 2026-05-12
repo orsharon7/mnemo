@@ -2,6 +2,28 @@
 
 All notable changes to Mnemo. Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 
+## [0.6.0] — 2026-05-12
+
+### Added
+- **In-app auto-update via Sparkle 2.9.1.** Mnemo now checks for new releases
+  daily (and on demand from the menu) and prompts the user to install. Updates
+  are EdDSA-signed end-to-end; only releases signed with the project's private
+  key will be accepted.
+- "Check for Updates…" menu item in the status-bar menu.
+- App icon (`icon.png` → `Resources/AppIcon.icns`) now ships in the bundle.
+- GitHub Pages workflow (`pages.yml`) publishes the marketing site +
+  `appcast.xml` from `/site` on pushes to `dev` that change files under
+  `site/` (or the workflow file itself).
+
+### Changed
+- `release.yml` (CI) now fetches the Sparkle framework, signs the DMG with
+  `sign_update`, regenerates `site/appcast.xml`, and commits it back to `dev`
+  so the public update feed is always in sync with the latest GitHub Release.
+- `Makefile` embeds `Sparkle.framework` in `Contents/Frameworks/` and links
+  with `-rpath @executable_path/../Frameworks`.
+- `Info.plist` adds `SUFeedURL`, `SUPublicEDKey`, `SUEnableAutomaticChecks`,
+  `SUScheduledCheckInterval`, and bumps version to 0.6.0.
+
 ## [0.5.0] — 2026-05-11
 
 ### Changed

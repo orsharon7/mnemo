@@ -11,6 +11,7 @@ APP_BUNDLE := $(BUILD_DIR)/$(APP_NAME).app
 CONTENTS := $(APP_BUNDLE)/Contents
 MACOS_DIR := $(CONTENTS)/MacOS
 RES_DIR := $(CONTENTS)/Resources
+FRAMEWORKS_DIR := $(CONTENTS)/Frameworks
 BIN := $(MACOS_DIR)/$(APP_NAME)
 
 SWIFT_SOURCES := $(wildcard Sources/*.swift)
@@ -18,34 +19,57 @@ SWIFT_SOURCES := $(wildcard Sources/*.swift)
 SDK := $(shell xcrun --show-sdk-path --sdk macosx)
 TARGET := arm64-apple-macos14.0
 
+SPARKLE_FRAMEWORK := Frameworks/Sparkle.framework
+
 SWIFTC_FLAGS := \
 	-O \
 	-sdk $(SDK) \
 	-target $(TARGET) \
+	-F Frameworks \
 	-framework AppKit \
 	-framework SwiftUI \
 	-framework Combine \
-	-framework Carbon
+	-framework Carbon \
+	-framework Sparkle \
+	-Xlinker -rpath -Xlinker @executable_path/../Frameworks
 
-.PHONY: all run install clean codesign dirs dmg
+.PHONY: all run install clean codesign dirs dmg sparkle
 
-all: dirs $(BIN) $(CONTENTS)/Info.plist
+all: dirs $(BIN) $(CONTENTS)/Info.plist $(RES_DIR)/AppIcon.icns $(FRAMEWORKS_DIR)/Sparkle.framework
+	@$(MAKE) --no-print-directory codesign
 	@echo "→ Built $(APP_BUNDLE)"
 
 dirs:
-	@mkdir -p $(MACOS_DIR) $(RES_DIR)
+	@mkdir -p $(MACOS_DIR) $(RES_DIR) $(FRAMEWORKS_DIR)
 
-$(BIN): $(SWIFT_SOURCES)
+sparkle: $(SPARKLE_FRAMEWORK)
+
+$(SPARKLE_FRAMEWORK):
+	@echo "→ Fetching Sparkle framework…"
+	@bash scripts/fetch-sparkle.sh
+
+$(BIN): $(SWIFT_SOURCES) $(SPARKLE_FRAMEWORK) | dirs
 	@echo "→ Compiling $(APP_NAME)…"
 	swiftc $(SWIFTC_FLAGS) -o $(BIN) $(SWIFT_SOURCES)
-	@$(MAKE) --no-print-directory codesign
 
-$(CONTENTS)/Info.plist: Info.plist
+$(CONTENTS)/Info.plist: Info.plist | dirs
 	@cp Info.plist $(CONTENTS)/Info.plist
 
+$(RES_DIR)/AppIcon.icns: Resources/AppIcon.icns | dirs
+	@cp Resources/AppIcon.icns $(RES_DIR)/AppIcon.icns
+
+$(FRAMEWORKS_DIR)/Sparkle.framework: $(SPARKLE_FRAMEWORK) | dirs
+	@echo "→ Embedding Sparkle.framework…"
+	@rm -rf $(FRAMEWORKS_DIR)/Sparkle.framework
+	@cp -R $(SPARKLE_FRAMEWORK) $(FRAMEWORKS_DIR)/Sparkle.framework
+
 codesign:
-	@codesign --force --deep --sign - $(APP_BUNDLE) >/dev/null 2>&1 || true
-	@echo "→ ad-hoc signed."
+	@if codesign --force --deep --sign - $(APP_BUNDLE) >/dev/null 2>&1; then \
+		echo "→ ad-hoc signed."; \
+	else \
+		echo "ERROR: codesign failed for $(APP_BUNDLE)" >&2; \
+		exit 1; \
+	fi
 
 run: all
 	@echo "→ Launching $(APP_NAME)…"

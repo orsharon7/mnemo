@@ -3,6 +3,16 @@ import AppKit
 import Carbon.HIToolbox
 import UniformTypeIdentifiers
 
+extension Bundle {
+    /// CFBundleShortVersionString from Info.plist (e.g. "0.6.0"). Falls back to
+    /// CFBundleVersion or "?" so the UI never crashes on a malformed bundle.
+    var appVersion: String {
+        (object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String)
+            ?? (object(forInfoDictionaryKey: "CFBundleVersion") as? String)
+            ?? "?"
+    }
+}
+
 struct PreferencesView: View {
     @ObservedObject var settings: Settings = .shared
     @State private var recording = false
@@ -97,7 +107,7 @@ struct PreferencesView: View {
             Section {
                 HStack {
                     Spacer()
-                    Text("Mnemo v0.4.0 — local clipboard history. No cloud, ever.")
+                    Text("Mnemo v\(Bundle.main.appVersion) — local clipboard history. No cloud, ever.")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                     Spacer()
