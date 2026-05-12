@@ -181,7 +181,7 @@ final class HistoryStore: ObservableObject {
     /// Original whitespace is preserved so multi-line snippet searches match correctly.
     // Precompiled once; reused on every search invocation to avoid per-keystroke regex compilation.
     private static let operatorRegex = try! NSRegularExpression(
-        pattern: "(?i)(^|\\s)(/url|/json|/code|/email|/text|/multiline|/pin)(?=\\s|$)"
+        pattern: "(?i)(^|\\s)(/url|/json|/code|/email|/text|/multiline|/pin)(?:[ \\t]|$)"
     )
 
     private static func parseOperators(_ q: String) -> (types: Set<ClipEntryType>, pinOnly: Bool, text: String) {
@@ -204,7 +204,8 @@ final class HistoryStore: ObservableObject {
         // Remove operator tokens from the original string, preserving all internal whitespace,
         // so multi-line free-text queries (e.g. "a\nb") are not collapsed to "a b".
         // Pattern: match operator preceded by start-of-string or whitespace (captured as $1),
-        // followed by whitespace or end-of-string — replace with just $1 to keep the surrounding space.
+        // followed by a non-newline space/tab or end-of-string (consumed, not a lookahead) — replace with
+        // just $1 so the surrounding text is joined by at most one space, avoiding doubled whitespace.
         // The regex is cached as a static constant to avoid recompiling it on every search invocation.
         let range = NSRange(q.startIndex..., in: q)
         let freeText = Self.operatorRegex.stringByReplacingMatches(in: q, range: range, withTemplate: "$1")
