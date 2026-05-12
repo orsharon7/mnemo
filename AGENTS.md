@@ -5,7 +5,7 @@ Project instructions for AI coding agents.
 <!-- BEGIN:COPILOT-RULES -->
 ## Coding Guidelines (AI-maintained)
 *Auto-updated by pr-review-reflect — do not edit this section manually.*
-*Last updated: 2026-05-13 from PR #35 review (optimized)*
+*Last updated: 2026-05-13 from PR #35 review*
 
 ### Frontend & CSS
 - Set `fetchpriority="high"` on the primary hero image; never `loading="lazy"` on above-the-fold images.
@@ -51,6 +51,7 @@ Project instructions for AI coding agents.
 - **Layout & access:** Use `Color.clear.frame(height:)` or padding for fixed-height gaps — never `Spacer().frame(height:)`. Declare types used only within one file `private` or `fileprivate`.
 - **Lazy embedding:** Skip embedding if a non-nil vector already exists; compute embeddings off the main thread.
 - **Display scale:** Use `@Environment(\.displayScale)` or the window's `screen?.backingScaleFactor` for per-pixel sizing; never use `NSScreen.main?.backingScaleFactor` (wrong on multi-display setups).
+- **Hairline strokes:** Derive `lineWidth` (and any "1px" border) from the display scale (e.g. `1 / displayScale`) so the stroke is exactly one physical pixel on Retina; never hard-code `lineWidth: 1`.
 - **Focus management:** Gate `makeFirstResponder` in `makeNSView` on the `isFocused` binding; let `updateNSView` drive focus changes to keep representable state consistent.
 
 ### Search, Text Processing & Python
