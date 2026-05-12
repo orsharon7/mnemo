@@ -19,7 +19,7 @@ Project instructions for AI coding agents.
 - Remove unused imports and unused callback/closure parameters.
 - Insert separators (`•`, `|`, `/`) only when both adjacent items are present.
 - Keep UI labels, tooltips, comments, and PR descriptions in sync with actual behavior in the same commit.
-- Write inline comments as complete sentences; remove stray fragments before committing.
+- Write inline comments as complete sentences; remove stray fragments.
 - Verify every acceptance criterion before closing a PR.
 
 ### Shell Scripting
@@ -50,7 +50,7 @@ Project instructions for AI coding agents.
 - **Async & state:** Capture lazily-evaluated values into a `let` before `DispatchQueue.main.async`. Declare `NSRegularExpression` as `static let`; observe shared singletons via `@ObservedObject`/`@StateObject`. Reset all ephemeral `@State` (focus, selection, query, scroll) in the panel-opened handler on every show. Consolidate dependent `.onReceive` subscriptions on sibling views into one handler.
 - **Layout & access:** Use `Color.clear.frame(height:)` or padding for fixed-height gaps — never `Spacer().frame(height:)`. Declare types used only within one file `private` or `fileprivate`.
 - **Lazy embedding:** Skip embedding if a non-nil vector already exists; compute embeddings off the main thread.
-- **Display scale & hairlines:** Use `@Environment(\.displayScale)` or `window.screen?.backingScaleFactor` for per-pixel sizing; derive `lineWidth` as `1 / displayScale` for exact 1px Retina strokes. Never use `NSScreen.main?.backingScaleFactor` or hard-code `lineWidth: 1`. Declare `@Environment(\.displayScale) private var displayScale` in every SwiftUI view that computes pixel-aligned sizes; do not reference it before declaring it.
+- **Display scale & hairlines:** Use `@Environment(\.displayScale)` for per-pixel sizing; derive `lineWidth` as `1 / displayScale` for exact 1px Retina strokes. Never use `NSScreen.main?.backingScaleFactor` or hard-code `lineWidth: 1`. Declare `@Environment(\.displayScale) private var displayScale` in every SwiftUI view that computes pixel-aligned sizes before referencing it.
 - **Force-unwrap:** Never force-unwrap (`!`); prefer `guard let`, `if let`, or nil-coalescing.
 - **Focus management:** Gate `makeFirstResponder` in `makeNSView` on the `isFocused` binding; drive focus changes through `updateNSView`.
 
