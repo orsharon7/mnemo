@@ -173,25 +173,90 @@ final class HistoryStore: ObservableObject {
         }
     }
 
+    /// Single source-of-truth operator table.
+    /// Each entry maps the operator token (lowercased, with leading "/") to either
+    /// a `ClipEntryType` filter or `nil` for special-purpose operators (/pin).
+    private static let operatorTable: [(token: String, type: ClipEntryType?)] = [
+        ("/url",       .url),
+        ("/json",      .json),
+        ("/code",      .code),
+        ("/email",     .email),
+        ("/text",      .text),
+        ("/multiline", .multiline),
+        ("/pin",       nil),
+    ]
+
+    /// Regex derived from `operatorTable`; compiled once at class load time.
+    /// Matches an operator token preceded by start-of-string or whitespace (group 1),
+    /// followed by a non-newline space/tab, a newline boundary lookahead, or end-of-string.
+    private static let operatorRegex: NSRegularExpression = {
+        let alternation = operatorTable.map { NSRegularExpression.escapedPattern(for: $0.token) }.joined(separator: "|")
+        let pattern = "(?i)(^|\\s)(\(alternation))(?:[ \\t]|(?=[\\r\\n])|$)"
+        return try! NSRegularExpression(pattern: pattern)
+    }()
+
+    /// Trailing-whitespace-before-newline cleanup regex; removes spaces/tabs that
+    /// operator stripping can leave immediately before a newline.
+    private static let trailingSpaceBeforeNewlineRegex = try! NSRegularExpression(
+        pattern: "[ \\t]+(?=\\r?\\n)"
+    )
+
+    /// Parse search operators from the query string.
+    /// Returns `(types: Set<ClipEntryType>, pinOnly: Bool, text: String)` where
+    /// `types` is the set of type filters, `pinOnly` indicates the /pin operator was present,
+    /// and `text` is the remaining free-text query with operators stripped.
+    /// Internal whitespace (including newlines) is preserved so multi-line snippet searches
+    /// match correctly; leading/trailing whitespace is trimmed by the caller before matching.
+    private static func parseOperators(_ q: String) -> (types: Set<ClipEntryType>, pinOnly: Bool, text: String) {
+        var types: Set<ClipEntryType> = []
+        var pinOnly = false
+        // Tokenize only to identify operators; do NOT re-join tokens (that would collapse \n → space).
+        let tokens = q.components(separatedBy: .whitespacesAndNewlines).filter { !$0.isEmpty }
+        for token in tokens {
+            if let entry = operatorTable.first(where: { $0.token == token.lowercased() }) {
+                if let t = entry.type { types.insert(t) } else { pinOnly = true }
+            }
+        }
+        // Remove operator tokens from the original string, preserving all internal whitespace,
+        // so multi-line free-text queries (e.g. "a\nb") are not collapsed to "a b".
+        // Replacing with $1 can leave a trailing space/tab before a newline when the operator
+        // was "word /op\nnextword" — clean that up so multi-line substring matches still work.
+        let range = NSRange(q.startIndex..., in: q)
+        var freeText = Self.operatorRegex.stringByReplacingMatches(in: q, range: range, withTemplate: "$1")
+        let freeRange = NSRange(freeText.startIndex..., in: freeText)
+        freeText = Self.trailingSpaceBeforeNewlineRegex.stringByReplacingMatches(
+            in: freeText, range: freeRange, withTemplate: ""
+        )
+        return (types, pinOnly, freeText)
+    }
+
     func search(_ q: String) -> [ClipEntry] {
         let trimmed = q.trimmingCharacters(in: .whitespacesAndNewlines)
         if trimmed.isEmpty { return entries }
-        let needle = trimmed.lowercased()
 
-        let substring = entries.filter { $0.content.lowercased().contains(needle) }
+        let (typeFilters, pinOnly, freeText) = Self.parseOperators(trimmed)
+        let freeTextTrimmed = freeText.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        var pool = entries
+        if !typeFilters.isEmpty { pool = pool.filter { typeFilters.contains($0.type) } }
+        if pinOnly            { pool = pool.filter { $0.isPinned } }
+
+        if freeTextTrimmed.isEmpty { return pool }
+
+        let needle = freeTextTrimmed.lowercased()
+
+        let substring = pool.filter { $0.content.lowercased().contains(needle) }
 
         let useSemantic = Settings.shared.semanticSearchEnabled
             && Embedder.shared.isAvailable
-            && trimmed.count >= 3
+            && freeTextTrimmed.count >= 3
 
-        if useSemantic, let qv = Embedder.shared.embed(trimmed) {
-            // NLEmbedding sentence vectors run low; 0.30 is a reasonable signal floor
-            // empirically. We cap top-K to keep noise out.
+        if useSemantic, let qv = Embedder.shared.embed(freeTextTrimmed) {
             let threshold: Float = 0.30
             var scored: [(ClipEntry, Float)] = []
-            scored.reserveCapacity(entries.count)
+            scored.reserveCapacity(pool.count)
             let substringIDs = Set(substring.map { $0.id })
-            for e in entries {
+            for e in pool {
                 guard let v = e.vector, !substringIDs.contains(e.id) else { continue }
                 let s = Embedder.cosine(qv, v)
                 if s >= threshold { scored.append((e, s)) }
@@ -205,8 +270,7 @@ final class HistoryStore: ObservableObject {
         if !substring.isEmpty || needle.count < 2 {
             return Self.stableSortPinnedFirst(substring)
         }
-        // Last resort: fuzzy subsequence.
-        let fuzzy = entries.filter { Self.isSubsequence(needle, of: $0.content.lowercased()) }
+        let fuzzy = pool.filter { Self.isSubsequence(needle, of: $0.content.lowercased()) }
         return Self.stableSortPinnedFirst(fuzzy)
     }
 
