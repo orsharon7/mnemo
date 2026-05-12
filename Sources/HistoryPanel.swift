@@ -3,6 +3,52 @@ import AppKit
 
 enum ArrowDirection { case up, down }
 
+// MARK: - App icon cache
+
+final class AppIconCache {
+    static let shared = AppIconCache()
+    private var cache: [String: NSImage] = [:]
+    private let lock = NSLock()
+
+    private init() {}
+
+    func icon(forBundle bundleID: String) -> NSImage? {
+        lock.lock()
+        if let cached = cache[bundleID] {
+            lock.unlock()
+            return cached
+        }
+        lock.unlock()
+
+        let img: NSImage?
+        if let url = NSWorkspace.shared.urlForApplication(withBundleIdentifier: bundleID) {
+            img = NSWorkspace.shared.icon(forFile: url.path)
+        } else {
+            img = nil
+        }
+
+        lock.lock()
+        cache[bundleID] = img
+        lock.unlock()
+        return img
+    }
+}
+
+// MARK: - Type badge color
+
+private extension ClipEntryType {
+    var badgeColor: Color {
+        switch self {
+        case .url:       return Color(red: 0.2, green: 0.55, blue: 1.0)
+        case .email:     return Color(red: 0.6, green: 0.35, blue: 1.0)
+        case .json:      return Color(red: 0.25, green: 0.75, blue: 0.55)
+        case .code:      return Color(red: 0.95, green: 0.6, blue: 0.1)
+        case .multiline: return Color(red: 0.55, green: 0.55, blue: 0.6)
+        case .text:      return .secondary
+        }
+    }
+}
+
 struct HistoryPanel: View {
     @ObservedObject var store: HistoryStore
     @ObservedObject var panelState: PanelState
@@ -195,57 +241,86 @@ struct HistoryRow: View {
     let index: Int
     let isSelected: Bool
 
+    @State private var appIcon: NSImage? = nil
+
     var body: some View {
-        HStack(alignment: .top, spacing: 10) {
-            Text(index < 9 ? "⌘\(index + 1)" : " ")
-                .font(.system(.caption, design: .monospaced))
-                .foregroundStyle(isSelected ? AnyShapeStyle(Color.white.opacity(0.9)) : AnyShapeStyle(HierarchicalShapeStyle.tertiary))
-                .frame(width: 28, alignment: .leading)
+        HStack(alignment: .top, spacing: 0) {
+            Rectangle()
+                .fill(isSelected ? Color.accentColor : Color.clear)
+                .frame(width: 3)
+                .cornerRadius(1.5)
+                .padding(.trailing, 7)
+
+            if let badge = entry.type.badge {
+                Text(badge)
+                    .font(.system(size: 8, weight: .bold, design: .monospaced))
+                    .padding(.horizontal, 4).padding(.vertical, 2)
+                    .background(
+                        RoundedRectangle(cornerRadius: 3)
+                            .fill(isSelected
+                                  ? Color.white.opacity(0.25)
+                                  : entry.type.badgeColor.opacity(0.18))
+                    )
+                    .foregroundStyle(isSelected ? .white : entry.type.badgeColor)
+                    .frame(width: 36, alignment: .center)
+                    .padding(.trailing, 6)
+                    .padding(.top, 3)
+            } else {
+                Spacer().frame(width: 42)
+            }
 
             VStack(alignment: .leading, spacing: 2) {
-                HStack(spacing: 6) {
+                HStack(spacing: 5) {
                     if entry.isPinned {
                         Image(systemName: "pin.fill")
                             .font(.system(size: 10))
                             .foregroundStyle(isSelected ? .white : .orange)
                     }
                     Text(preview(entry.content))
-                        .font(.system(.body, design: .default))
+                        .font(.system(size: 13))
                         .lineLimit(2)
                         .foregroundStyle(isSelected ? .white : .primary)
                 }
 
-                HStack(spacing: 6) {
-                    if let badge = entry.type.badge {
-                        Text(badge)
-                            .font(.system(size: 9, weight: .semibold, design: .monospaced))
-                            .padding(.horizontal, 4).padding(.vertical, 1)
-                            .background(
-                                RoundedRectangle(cornerRadius: 3)
-                                    .fill(isSelected ? Color.white.opacity(0.25) : Color.accentColor.opacity(0.15))
-                            )
-                            .foregroundStyle(isSelected ? .white : .accentColor)
+                HStack(spacing: 5) {
+                    if let icon = appIcon {
+                        Image(nsImage: icon)
+                            .resizable()
+                            .frame(width: 13, height: 13)
+                            .clipShape(RoundedRectangle(cornerRadius: 2))
                     }
                     if let src = entry.sourceName {
                         Text(src)
-                        Text("•")
                     }
+                    Text("•")
                     Text(relativeTime(entry.lastUsedAt))
                     if entry.truncated {
                         Text("• truncated")
                     }
                 }
-                .font(.caption)
-                .foregroundStyle(isSelected ? .white.opacity(0.85) : .secondary)
+                .font(.system(size: 11))
+                .foregroundStyle(isSelected ? .white.opacity(0.8) : .secondary)
             }
+
             Spacer(minLength: 0)
+
+            Text(index < 9 ? "⌘\(index + 1)" : "")
+                .font(.system(.caption2, design: .monospaced))
+                .foregroundStyle(isSelected ? AnyShapeStyle(Color.white.opacity(0.7)) : AnyShapeStyle(HierarchicalShapeStyle.quaternary))
+                .frame(width: 24, alignment: .trailing)
+                .padding(.top, 3)
         }
-        .padding(.vertical, 4)
-        .padding(.horizontal, 6)
+        .padding(.vertical, 5)
+        .padding(.horizontal, 4)
         .background(
             RoundedRectangle(cornerRadius: 6)
-                .fill(isSelected ? Color.accentColor : Color.clear)
+                .fill(isSelected ? Color.accentColor.opacity(0.06) : Color.clear)
         )
+        .onAppear {
+            if let bundleID = entry.sourceBundle {
+                appIcon = AppIconCache.shared.icon(forBundle: bundleID)
+            }
+        }
     }
 
     private func preview(_ s: String) -> String {
