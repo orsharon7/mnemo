@@ -178,13 +178,11 @@ final class HistoryStore: ObservableObject {
     /// Returns `(types: Set<ClipEntryType>, pinOnly: Bool, text: String)` where
     /// `types` is the set of type filters, `pinOnly` indicates the /pin operator was present,
     /// and `text` is the remaining free-text query with operators stripped.
-    /// The returned `text` preserves the original casing of the free-text tokens
-    /// so it can be used directly for embedding without casing inconsistencies.
+    /// Original whitespace is preserved so multi-line snippet searches match correctly.
     private static func parseOperators(_ q: String) -> (types: Set<ClipEntryType>, pinOnly: Bool, text: String) {
         var types: Set<ClipEntryType> = []
         var pinOnly = false
-        var rest: [String] = []
-        // Split on all whitespace (including newlines) so pasted multi-line queries work.
+        // Tokenize only to identify operators; do NOT re-join tokens (that would collapse \n → space).
         let tokens = q.components(separatedBy: .whitespacesAndNewlines).filter { !$0.isEmpty }
         for token in tokens {
             switch token.lowercased() {
@@ -195,10 +193,22 @@ final class HistoryStore: ObservableObject {
             case "/text":      types.insert(.text)
             case "/multiline": types.insert(.multiline)
             case "/pin":       pinOnly = true
-            default:           rest.append(token)  // preserve original casing
+            default:           break
             }
         }
-        return (types, pinOnly, rest.joined(separator: " "))
+        // Remove operator tokens from the original string, preserving all internal whitespace,
+        // so multi-line free-text queries (e.g. "a\nb") are not collapsed to "a b".
+        // Pattern: match operator preceded by start-of-string or whitespace (captured as $1),
+        // followed by whitespace or end-of-string — replace with just $1 to keep the surrounding space.
+        let operatorPattern = "(?i)(^|\\s)(/url|/json|/code|/email|/text|/multiline|/pin)(?=\\s|$)"
+        let freeText: String
+        if let regex = try? NSRegularExpression(pattern: operatorPattern) {
+            let range = NSRange(q.startIndex..., in: q)
+            freeText = regex.stringByReplacingMatches(in: q, range: range, withTemplate: "$1")
+        } else {
+            freeText = q
+        }
+        return (types, pinOnly, freeText)
     }
 
     func search(_ q: String) -> [ClipEntry] {
