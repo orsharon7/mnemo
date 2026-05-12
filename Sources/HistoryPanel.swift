@@ -239,6 +239,8 @@ struct QuickLookView: View {
     let entry: ClipEntry
     var onClose: () -> Void
 
+    @Environment(\.displayScale) private var displayScale
+
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             HStack(spacing: 8) {
@@ -258,7 +260,7 @@ struct QuickLookView: View {
                 Button("Close") { onClose() }.keyboardShortcut(.cancelAction)
             }
             .padding(12)
-            Color(NSColor.separatorColor).frame(height: 1 / (NSScreen.main?.backingScaleFactor ?? 2))
+            Color(NSColor.separatorColor).frame(height: 1 / displayScale)
             ScrollView {
                 Text(entry.content)
                     .font(.system(.body, design: .monospaced))
