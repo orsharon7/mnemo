@@ -74,6 +74,7 @@ struct HistoryPanel: View {
     @State private var query: String = ""
     @State private var selectionIndex: Int = 0
     @State private var previewing: ClipEntry?
+    @State private var isSearchFocused: Bool = true
 
     private var filtered: [ClipEntry] {
         store.search(query)
@@ -82,6 +83,7 @@ struct HistoryPanel: View {
     var body: some View {
         VStack(spacing: 0) {
             SearchField(text: $query,
+                        isFocused: $isSearchFocused,
                         onSubmit: commitSelection,
                         onEscape: handleEscape,
                         onArrow: handleArrow,
@@ -94,7 +96,7 @@ struct HistoryPanel: View {
                 .padding(.top, 10)
                 .padding(.bottom, 6)
 
-            Divider()
+            Color(NSColor.separatorColor).frame(height: 1 / (NSScreen.main?.backingScaleFactor ?? 2))
 
             if filtered.isEmpty {
                 VStack {
@@ -128,7 +130,7 @@ struct HistoryPanel: View {
                 }
             }
 
-            Divider()
+            Color(NSColor.separatorColor).frame(height: 1 / (NSScreen.main?.backingScaleFactor ?? 2))
             HStack(spacing: 12) {
                 Text("↑↓ navigate").foregroundStyle(.secondary)
                 Text("⏎ paste").foregroundStyle(.secondary)
@@ -160,6 +162,7 @@ struct HistoryPanel: View {
             query = ""
             selectionIndex = 0
             previewing = nil
+            isSearchFocused = true
         }
         .sheet(item: $previewing) { entry in
             QuickLookView(entry: entry) { previewing = nil }
@@ -237,7 +240,7 @@ struct QuickLookView: View {
                 Button("Close") { onClose() }.keyboardShortcut(.cancelAction)
             }
             .padding(12)
-            Divider()
+            Color(NSColor.separatorColor).frame(height: 1 / (NSScreen.main?.backingScaleFactor ?? 2))
             ScrollView {
                 Text(entry.content)
                     .font(.system(.body, design: .monospaced))
@@ -363,6 +366,7 @@ struct HistoryRow: View {
 
 struct SearchField: NSViewRepresentable {
     @Binding var text: String
+    @Binding var isFocused: Bool
     var onSubmit: () -> Void
     var onEscape: () -> Void
     var onArrow: (ArrowDirection) -> Void
@@ -393,9 +397,11 @@ struct SearchField: NSViewRepresentable {
         if nsView.stringValue != text {
             nsView.stringValue = text
         }
-        DispatchQueue.main.async {
-            if nsView.window?.firstResponder !== nsView.currentEditor() {
-                nsView.window?.makeFirstResponder(nsView)
+        if isFocused {
+            DispatchQueue.main.async {
+                if nsView.window?.firstResponder !== nsView.currentEditor() {
+                    nsView.window?.makeFirstResponder(nsView)
+                }
             }
         }
     }
