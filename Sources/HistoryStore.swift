@@ -173,8 +173,11 @@ final class HistoryStore: ObservableObject {
         }
     }
 
-    /// Parse type-filter operators (/url, /json, /pin, /code, /email, /text, /multiline)
-    /// from the query string. Returns (typeFilters, pinFilter, remainingText).
+    /// Parse type-filter operators (/url, /json, /code, /email, /text, /multiline)
+    /// and the pin-only operator (/pin) from the query string.
+    /// Returns `(types: Set<ClipEntryType>, pinOnly: Bool, text: String)` where
+    /// `types` is the set of type filters, `pinOnly` indicates the /pin operator was present,
+    /// and `text` is the remaining free-text query with operators stripped.
     /// The returned `text` preserves the original casing of the free-text tokens
     /// so it can be used directly for embedding without casing inconsistencies.
     private static func parseOperators(_ q: String) -> (types: Set<ClipEntryType>, pinOnly: Bool, text: String) {
@@ -216,7 +219,7 @@ final class HistoryStore: ObservableObject {
 
         let useSemantic = Settings.shared.semanticSearchEnabled
             && Embedder.shared.isAvailable
-            && needle.count >= 3
+            && freeText.count >= 3
 
         if useSemantic, let qv = Embedder.shared.embed(freeText) {
             let threshold: Float = 0.30
