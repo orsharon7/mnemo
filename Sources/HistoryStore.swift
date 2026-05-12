@@ -1,6 +1,7 @@
 import Foundation
 import AppKit
 import Combine
+import CryptoKit
 
 struct ClipEntry: Identifiable, Codable, Equatable {
     let id: UUID
@@ -14,23 +15,26 @@ struct ClipEntry: Identifiable, Codable, Equatable {
     var isPinned: Bool
     var type: ClipEntryType
     var vector: [Float]?
+    /// Number of times this content has been copied (≥ 1). Shown as a badge when > 1.
+    var copyCount: Int
 
     init(id: UUID, content: String, contentHash: String,
          sourceBundle: String?, sourceName: String?,
          createdAt: Date, lastUsedAt: Date,
          truncated: Bool, isPinned: Bool = false,
          type: ClipEntryType = .text,
-         vector: [Float]? = nil) {
+         vector: [Float]? = nil,
+         copyCount: Int = 1) {
         self.id = id; self.content = content; self.contentHash = contentHash
         self.sourceBundle = sourceBundle; self.sourceName = sourceName
         self.createdAt = createdAt; self.lastUsedAt = lastUsedAt
         self.truncated = truncated; self.isPinned = isPinned; self.type = type
-        self.vector = vector
+        self.vector = vector; self.copyCount = copyCount
     }
 
     private enum CodingKeys: String, CodingKey {
         case id, content, contentHash, sourceBundle, sourceName,
-             createdAt, lastUsedAt, truncated, isPinned, type, vector
+             createdAt, lastUsedAt, truncated, isPinned, type, vector, copyCount
     }
 
     init(from decoder: Decoder) throws {
@@ -46,6 +50,7 @@ struct ClipEntry: Identifiable, Codable, Equatable {
         isPinned = try c.decodeIfPresent(Bool.self, forKey: .isPinned) ?? false
         type = try c.decodeIfPresent(ClipEntryType.self, forKey: .type) ?? .text
         vector = try c.decodeIfPresent([Float].self, forKey: .vector)
+        copyCount = max(1, try c.decodeIfPresent(Int.self, forKey: .copyCount) ?? 1)
     }
 }
 
@@ -124,15 +129,20 @@ final class HistoryStore: ObservableObject {
 
         let hash = sha256(text)
         let detectedType = TypeDetector.detect(text)
-        let vector = Embedder.shared.embed(text)
         DispatchQueue.main.async {
-            if let idx = self.entries.firstIndex(where: { $0.contentHash == hash }) {
-                // Preserve pin state on dedupe; refresh recency.
+            if let idx = self.entries.firstIndex(where: { $0.contentHash == hash && $0.content == text }) {
                 var existing = self.entries.remove(at: idx)
                 existing.lastUsedAt = Date()
-                if existing.vector == nil { existing.vector = vector }
+                let (newCount, overflow) = existing.copyCount.addingReportingOverflow(1)
+                existing.copyCount = overflow ? Int.max : newCount
+                existing.sourceBundle = sourceBundle
+                existing.sourceName = sourceName
+                if existing.vector == nil {
+                    existing.vector = Embedder.shared.embed(text)
+                }
                 self.insertSorted(existing)
             } else {
+                let vector = Embedder.shared.embed(text)
                 let entry = ClipEntry(id: UUID(),
                                       content: text,
                                       contentHash: hash,
@@ -362,17 +372,60 @@ final class HistoryStore: ObservableObject {
 
     private func load() {
         guard let data = try? Data(contentsOf: dbURL) else { return }
-        if let decoded = try? JSONDecoder().decode([ClipEntry].self, from: data) {
-            self.entries = decoded
+        if var decoded = try? JSONDecoder().decode([ClipEntry].self, from: data) {
+            // Migrate legacy (non-SHA-256) hashes: recompute contentHash from content
+            // so that de-dupe works correctly across app versions.
+            let sha256Prefix = CharacterSet(charactersIn: "0123456789abcdef")
+            var needsMigration = false
+            for i in decoded.indices {
+                let h = decoded[i].contentHash
+                // A SHA-256 hex string is exactly 64 lowercase hex characters.
+                // Legacy FNV-1a hashes are shorter (≤ 16 hex chars).
+                if h.count != 64 || !h.unicodeScalars.allSatisfy({ sha256Prefix.contains($0) }) {
+                    decoded[i].contentHash = sha256(decoded[i].content)
+                    needsMigration = true
+                }
+            }
+            let collapsed = Self.collapseDuplicates(decoded)
+            self.entries = collapsed
+            if needsMigration || collapsed.count != decoded.count {
+                persistAsync()
+            }
         }
     }
 
-    private func sha256(_ s: String) -> String {
-        var hash: UInt64 = 0xcbf29ce484222325
-        for byte in s.utf8 {
-            hash ^= UInt64(byte)
-            hash = hash &* 0x100000001b3
+    private static func collapseDuplicates(_ entries: [ClipEntry]) -> [ClipEntry] {
+        // Key on (contentHash, content) pair to avoid false merges from hash collisions.
+        var seen: [String: Int] = [:]
+        var result: [ClipEntry] = []
+        for entry in entries {
+            let dedupeKey = entry.contentHash + "\0" + entry.content
+            if let existingIdx = seen[dedupeKey] {
+                var merged = result[existingIdx]
+                let (newCount, overflow) = merged.copyCount.addingReportingOverflow(entry.copyCount)
+                merged.copyCount = overflow ? Int.max : newCount
+                if entry.lastUsedAt > merged.lastUsedAt {
+                    merged.lastUsedAt = entry.lastUsedAt
+                    merged.sourceBundle = entry.sourceBundle
+                    merged.sourceName = entry.sourceName
+                    merged.isPinned = entry.isPinned
+                }
+                if merged.vector == nil { merged.vector = entry.vector }
+                result[existingIdx] = merged
+            } else {
+                seen[dedupeKey] = result.count
+                result.append(entry)
+            }
         }
-        return String(hash, radix: 16)
+        result.sort { lhs, rhs in
+            if lhs.isPinned != rhs.isPinned { return lhs.isPinned && !rhs.isPinned }
+            return lhs.lastUsedAt > rhs.lastUsedAt
+        }
+        return result
+    }
+
+    private func sha256(_ s: String) -> String {
+        let digest = SHA256.hash(data: Data(s.utf8))
+        return digest.map { String(format: "%02x", $0) }.joined()
     }
 }
