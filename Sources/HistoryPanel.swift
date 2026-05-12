@@ -129,10 +129,9 @@ struct HistoryPanel: View {
                         proxy.scrollTo(filtered[newValue].id, anchor: .center)
                     }
                     .onChange(of: scrollToTopToken) { _, _ in
-                        if let firstID = filtered.first?.id {
-                            proxy.scrollTo(firstID, anchor: .top)
-                        }
+                        scrollToTop(proxy: proxy)
                     }
+                    .onAppear { scrollToTop(proxy: proxy) }
                 }
             }
 
@@ -221,6 +220,16 @@ struct HistoryPanel: View {
         store.deleteEntry(entry)
         // Keep selection anchored near where it was.
         selectionIndex = max(0, min(selectionIndex, filtered.count - 2))
+    }
+
+    private func scrollToTop(proxy: ScrollViewProxy) {
+        guard let firstID = filtered.first?.id else { return }
+        // Defer to the next runloop so the List finishes its initial layout
+        // before we try to scroll — otherwise the first row can render
+        // clipped under the search bar on panel open.
+        DispatchQueue.main.async {
+            proxy.scrollTo(firstID, anchor: .top)
+        }
     }
 }
 
