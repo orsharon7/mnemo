@@ -68,5 +68,8 @@ Project instructions for AI coding agents.
 ### Shell Scripting & Output Parsing
 - When extracting a value with `sed` or `awk`, use a match-only mode (e.g. `sed -nE '...p'` or `grep -oE`) so unmatched input returns empty rather than the raw input line; then validate the extracted value (e.g. confirm it is numeric) before using it downstream.
 
+### CI & Git Branch Operations
+- When a CI workflow generates or modifies files and then switches branches, always perform the branch checkout first and generate/modify files afterward (or use a temp path and copy post-checkout); generating files before `git checkout` risks "untracked/modified working tree file would be overwritten" errors on subsequent runs.
+
 <!-- END:COPILOT-RULES -->
 
