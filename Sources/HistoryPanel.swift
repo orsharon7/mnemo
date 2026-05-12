@@ -8,6 +8,7 @@ enum ArrowDirection { case up, down }
 final class AppIconCache {
     static let shared = AppIconCache()
     private var cache: [String: NSImage] = [:]
+    private var misses: Set<String> = []
     private let lock = NSLock()
 
     private init() {}
@@ -17,6 +18,10 @@ final class AppIconCache {
         if let cached = cache[bundleID] {
             lock.unlock()
             return cached
+        }
+        if misses.contains(bundleID) {
+            lock.unlock()
+            return nil
         }
         lock.unlock()
 
@@ -28,7 +33,11 @@ final class AppIconCache {
         }
 
         lock.lock()
-        cache[bundleID] = img
+        if let img = img {
+            cache[bundleID] = img
+        } else {
+            misses.insert(bundleID)
+        }
         lock.unlock()
         return img
     }
@@ -291,8 +300,8 @@ struct HistoryRow: View {
                     }
                     if let src = entry.sourceName {
                         Text(src)
+                        Text("•")
                     }
-                    Text("•")
                     Text(relativeTime(entry.lastUsedAt))
                     if entry.truncated {
                         Text("• truncated")
