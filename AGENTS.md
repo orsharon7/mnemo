@@ -5,7 +5,7 @@ Project instructions for AI coding agents.
 <!-- BEGIN:COPILOT-RULES -->
 ## Coding Guidelines (AI-maintained)
 *Auto-updated by pr-review-reflect — do not edit this section manually.*
-*Last updated: 2026-05-13 from PR #34 review (optimized)*
+*Last updated: 2026-05-13 from PR #35 review*
 
 ### Frontend & CSS
 - Set `fetchpriority="high"` on the primary hero image; never `loading="lazy"` on above-the-fold images.
@@ -18,7 +18,7 @@ Project instructions for AI coding agents.
 ### Code Quality
 - Remove unused imports and unused callback/closure parameters.
 - Insert separators (`•`, `|`, `/`) only when both adjacent items are present.
-- Keep UI labels, tooltips, and inline comments in sync with actual behavior in the same commit.
+- Keep UI labels, tooltips, inline comments, and PR descriptions in sync with actual behavior in the same commit.
 - Write inline comments as complete sentences; remove stray words or fragments before committing.
 - Verify every acceptance criterion before closing a PR.
 
@@ -53,6 +53,7 @@ Project instructions for AI coding agents.
 - **Async capture:** Capture lazily-evaluated values (e.g., `filtered.first?.id`) into a `let` constant before `DispatchQueue.main.async`; never re-evaluate stateful expressions inside the async block.
 - **Panel state:** On show/hide without re-creation, reset all ephemeral `@State` (focus, selection, query, scroll) in the panel-opened handler — not only on first load.
 - **Event handlers:** Consolidate multiple `.onReceive` subscriptions on sibling views into one handler when one handler's output depends on state mutated by the other.
+- **Appearance:** Never use hard-coded `Color(white:)`, `Color(red:green:blue:)`, or literal hex colors in SwiftUI/AppKit views; use semantic system colors (`NSColor.controlBackgroundColor`, `.windowBackgroundColor`, `.separatorColor`, etc.) so the UI adapts to Light/Dark Mode and custom appearances.
 
 ### Search, Text Processing & Python
 - Apply identical preprocessing (case folding, whitespace normalization) to both indexed content and queries; preserve original-cased text for embeddings/display.
