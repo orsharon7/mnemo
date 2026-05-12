@@ -8,11 +8,11 @@ Project instructions for AI coding agents.
 *Last updated: 2026-05-12 from PR #32 review (optimized)*
 
 ### Frontend & CSS
-- Set `fetchpriority="high"` on the primary hero image; never `loading="lazy"` on above-the-fold images.
-- Add `@media (prefers-reduced-motion: reduce)` disabling `scroll-behavior: smooth` and reducing transitions/transforms.
+- Set `fetchpriority="high"` on the primary hero image; never use `loading="lazy"` on above-the-fold images.
+- Add `@media (prefers-reduced-motion: reduce)` that disables `scroll-behavior: smooth` and reduces transitions/transforms.
 - Declare a solid-color or legacy fallback before any modern CSS (`color-mix()`, container queries, `:has()`); for `-webkit-text-fill-color: transparent` gradient text, add a non-`color-mix()` fallback gradient first.
 - Use CSS classes for layout/theming; never inline styles. Remove unused custom properties.
-- Never use `href="#"`; use relative links (`index.html`, `./`) for subpath-deployed sites (e.g. GitHub Pages).
+- Never use `href="#"`; use relative links (`index.html`, `./`) for subpath-deployed sites.
 - Link download CTAs to `.../releases/latest/download/<asset>`, not an intermediate release page.
 
 ### Code Quality
@@ -47,12 +47,10 @@ Project instructions for AI coding agents.
 
 ### Search, Text Processing & Python
 - Apply identical preprocessing (case folding, whitespace normalization) to both indexed content and queries; preserve original-cased text separately for embeddings/display.
-- Trim whitespace from user input and reject blank/whitespace-only strings before searching or embedding.
+- Trim whitespace from user input; reject blank/whitespace-only strings before searching or embedding.
 - Split user input on `\s` (including newlines) so tokens are recognized in pasted multi-line input.
-- In regex token-stripping, consume adjacent whitespace in the same substitution; include `\n`/`\r\n` alongside `[ \t]` and `$` in boundary classes so operators before newlines are caught.
-- When a capturing group preserves leading whitespace during operator removal, consume the preceding space/tab when the operator is followed by a newline boundary, or strip spaces/tabs adjacent to `\r?\n` in post-processing.
-- Define one canonical list of supported operators/tokens; derive all regex alternations and switch/case logic from it — never duplicate across patterns, cases, and docstrings.
-- Keep regex comments in sync with the pattern; update mechanic descriptions whenever the pattern changes.
+- In regex token-stripping, consume adjacent whitespace in the same substitution; include `\n`/`\r\n` alongside `[ \t]` and `$` in boundary classes, and consume preceding space/tab when an operator precedes a newline boundary.
+- Define one canonical list of supported operators/tokens; derive all regex alternations and switch/case logic from it — never duplicate across patterns, cases, and docstrings. Keep regex comments in sync with the pattern.
 - Pass `encoding="utf-8"` (and `newline="\n"` for stable diffs) to `open()`, `Path.read_text()`, and `Path.write_text()`.
 - Escape/split `]]>` before inserting arbitrary text into XML CDATA sections.
 
