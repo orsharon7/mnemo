@@ -101,6 +101,9 @@ jobs:
           NOTES: ${{ steps.changelog.outputs.notes }}
         run: |
           DMG_URL="https://github.com/${GITHUB_REPOSITORY}/releases/download/${VERSION}/Mnemo-${VERSION}.dmg"
+          # Write to a temp file first so that the subsequent `git checkout dev`
+          # is not blocked by a modified/untracked site/appcast.xml in the tree.
+          APPCAST_TMP="$(mktemp)"
           python3 scripts/update-appcast.py \
             --appcast site/appcast.xml \
             --version "${VERSION}" \
@@ -109,15 +112,24 @@ jobs:
             --length "${LENGTH}" \
             --notes "${NOTES}" \
             --min-os 14.0
+          cp site/appcast.xml "${APPCAST_TMP}"
+          echo "appcast_tmp=${APPCAST_TMP}" >> "${GITHUB_OUTPUT}"
           echo "--- site/appcast.xml ---"
           cat site/appcast.xml
+        id: appcast
 
       - name: Commit appcast.xml back to dev
         run: |
           git config user.name  "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git fetch origin dev
+          # Restore working tree to a clean state before switching branches so
+          # that git checkout does not fail due to site/appcast.xml being
+          # modified or untracked on the current (tag) checkout.
+          git checkout -- .
           git checkout dev
+          mkdir -p site
+          cp "${{ steps.appcast.outputs.appcast_tmp }}" site/appcast.xml
           git add site/appcast.xml
           if git diff --cached --quiet; then
             echo "→ appcast.xml unchanged, nothing to commit"
