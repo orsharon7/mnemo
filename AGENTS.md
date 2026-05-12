@@ -57,6 +57,8 @@ Project instructions for AI coding agents.
 - Split user input on `\s` (including newlines) so tokens are recognized in pasted multi-line input.
 - When stripping tokens via regex, consume adjacent whitespace in the same substitution to prevent doubled spaces.
 - When matching operator/token boundaries in regex, include `\n`/`\r\n` alongside `[ \t]` and `$`; operators followed by a newline won't be stripped if newlines are not in the boundary character class, leaving operator text in the remaining needle.
+- When a regex comment describes its mechanics (e.g. "consumed, not a lookahead"), update the comment whenever the pattern changes (e.g. a lookahead alternative is added); stale mechanic descriptions mislead future edits.
+- When doc comments describe whitespace/trimming behavior, distinguish between leading/trailing trim (intentional, for matching) and internal whitespace preservation; never let the summary imply all whitespace is preserved if trimming occurs.
 - Pass `encoding="utf-8"` (and `newline="\n"` for stable diffs) to `open()`, `Path.read_text()`, and `Path.write_text()`.
 - Escape/split `]]>` before inserting arbitrary text into XML CDATA sections.
 
