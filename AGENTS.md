@@ -5,7 +5,7 @@ Project instructions for AI coding agents.
 <!-- BEGIN:COPILOT-RULES -->
 ## Coding Guidelines (AI-maintained)
 *Auto-updated by pr-review-reflect — do not edit this section manually.*
-*Last updated: 2026-05-12 from PR #34 review*
+*Last updated: 2026-05-12 from PR #35 review*
 
 ### Frontend & CSS
 - Set `fetchpriority="high"` on the primary hero image; never `loading="lazy"` on above-the-fold images.
@@ -52,6 +52,7 @@ Project instructions for AI coding agents.
 - **Hash migration:** When changing a persisted hash algorithm, recompute `contentHash` from `content` for all decoded entries on `load()` — before deduplication — so legacy and new hashes don't coexist.
 - **Lazy embedding:** Skip embedding if a non-nil vector already exists; compute embeddings off the main thread.
 - **Async capture:** Capture computed or lazily-evaluated values (e.g., `filtered.first?.id`) into a `let` constant before dispatching to `DispatchQueue.main.async`; never re-evaluate expensive or stateful expressions inside the async block.
+- **Reused panel state:** When a panel/view is shown/hidden without being re-created, reset all ephemeral `@State` (focus, selection index, query, scroll position) in the panel-opened event handler — not only on first load — so the panel reopens in a consistent initial state.
 
 ### Search, Text Processing & Python
 - Apply identical preprocessing (case folding, whitespace normalization) to both indexed content and queries; preserve original-cased text for embeddings/display.
