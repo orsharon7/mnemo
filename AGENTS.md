@@ -5,7 +5,7 @@ Project instructions for AI coding agents.
 <!-- BEGIN:COPILOT-RULES -->
 ## Coding Guidelines (AI-maintained)
 *Auto-updated by pr-review-reflect — do not edit this section manually.*
-*Last updated: 2026-05-13 from PR #35 review (optimized)*
+*Last updated: 2026-05-13 from PR #35 review*
 
 ### Frontend & CSS
 - Set `fetchpriority="high"` on the primary hero image; never `loading="lazy"` on above-the-fold images.
@@ -49,6 +49,7 @@ Project instructions for AI coding agents.
 - **Data consistency:** Define one explicit merge rule per field; re-sort with the canonical comparator after any merge pass; persist immediately when a load-time migration detects changes.
 - **Hash migration:** On hash algorithm change, recompute `contentHash` from `content` for all decoded entries in `load()` before deduplication.
 - **Async & state:** Capture lazily-evaluated values into a `let` before `DispatchQueue.main.async`. Declare `NSRegularExpression` as `static let`; observe shared singletons via `@ObservedObject`/`@StateObject`. Reset all ephemeral `@State` (focus, selection, query, scroll) in the panel-opened handler on every show. Consolidate dependent `.onReceive` subscriptions on sibling views into one handler.
+- **Layout spacing:** For fixed-height gaps, use `Color.clear.frame(height:)` or padding — never `Spacer().frame(height:)`, which participates in flexible layout and can expand beyond the intended size.
 - **Access control:** Declare types used only within one file `private` or `fileprivate`.
 - **Lazy embedding:** Skip embedding if a non-nil vector already exists; compute embeddings off the main thread.
 
