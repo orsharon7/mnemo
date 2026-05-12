@@ -181,7 +181,7 @@ final class HistoryStore: ObservableObject {
     /// Original whitespace is preserved so multi-line snippet searches match correctly.
     // Precompiled once; reused on every search invocation to avoid per-keystroke regex compilation.
     private static let operatorRegex = try! NSRegularExpression(
-        pattern: "(?i)(^|\\s)(/url|/json|/code|/email|/text|/multiline|/pin)(?:[ \\t]|$)"
+        pattern: "(?i)(^|\\s)(/url|/json|/code|/email|/text|/multiline|/pin)(?:[ \\t]|(?=[\\r\\n])|$)"
     )
 
     private static func parseOperators(_ q: String) -> (types: Set<ClipEntryType>, pinOnly: Bool, text: String) {
