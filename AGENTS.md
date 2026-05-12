@@ -5,7 +5,7 @@ Project instructions for AI coding agents.
 <!-- BEGIN:COPILOT-RULES -->
 ## Coding Guidelines (AI-maintained)
 *Auto-updated by pr-review-reflect — do not edit this section manually.*
-*Last updated: 2026-05-12 from PR #33 review (optimized)*
+*Last updated: 2026-05-12 from PR #33 review*
 
 ### Frontend & CSS
 - Set `fetchpriority="high"` on the primary hero image; never use `loading="lazy"` on above-the-fold images.
@@ -49,6 +49,7 @@ Project instructions for AI coding agents.
 - **Merge rules:** Define one explicit merge rule per field (e.g., "take the value from the entry with the latest `lastUsedAt`"); keep code, comments, and PR description in agreement.
 - **Lazy embedding:** Check for a non-nil vector before computing embeddings; skip if already present and perform embedding off the main thread.
 - **Post-mutation consistency:** Re-sort with the canonical comparator after any merge/collapse pass. Persist immediately when a load-time migration detects changes; don't wait for the next user-triggered save.
+- **Hash algorithm migration:** When changing a persisted hash algorithm (e.g., upgrading to SHA-256), recompute `contentHash` from `content` for all decoded entries on `load()` — before deduplication or collapse — so legacy and new hashes don't coexist and break dedup/`copyCount` increment across versions.
 
 ### Search, Text Processing & Python
 - Apply identical preprocessing (case folding, whitespace normalization) to both indexed content and queries; preserve original-cased text separately for embeddings/display.
