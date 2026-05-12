@@ -114,8 +114,9 @@ jobs:
             --notes "${NOTES}" \
             --min-os 14.0
           cp site/appcast.xml "${APPCAST_TMP}"
-          # Remove the untracked file so git checkout dev cannot be blocked by it.
-          git clean -f site/appcast.xml
+          # Reset site/appcast.xml to its committed state (handles both tracked and
+          # untracked cases) so `git checkout dev` cannot be blocked by local modifications.
+          git checkout -- site/appcast.xml 2>/dev/null || git clean -f site/appcast.xml
           echo "appcast_tmp=${APPCAST_TMP}" >> "${GITHUB_OUTPUT}"
           echo "--- appcast (temp) ---"
           cat "${APPCAST_TMP}"

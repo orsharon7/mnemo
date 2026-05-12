@@ -5,7 +5,7 @@ import Sparkle
 /// Sparkle reads `SUFeedURL` and `SUPublicEDKey` from Info.plist. Updates are
 /// EdDSA-signed; the matching private key lives only in the repo's GitHub
 /// Actions secret `SPARKLE_ED_PRIVATE_KEY`.
-final class Updater {
+final class Updater: NSObject {
 
     static let shared = Updater()
 

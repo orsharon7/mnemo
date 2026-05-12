@@ -48,17 +48,17 @@ $(SPARKLE_FRAMEWORK):
 	@echo "→ Fetching Sparkle framework…"
 	@bash scripts/fetch-sparkle.sh
 
-$(BIN): $(SWIFT_SOURCES) $(SPARKLE_FRAMEWORK)
+$(BIN): $(SWIFT_SOURCES) $(SPARKLE_FRAMEWORK) | dirs
 	@echo "→ Compiling $(APP_NAME)…"
 	swiftc $(SWIFTC_FLAGS) -o $(BIN) $(SWIFT_SOURCES)
 
-$(CONTENTS)/Info.plist: Info.plist
+$(CONTENTS)/Info.plist: Info.plist | dirs
 	@cp Info.plist $(CONTENTS)/Info.plist
 
-$(RES_DIR)/AppIcon.icns: Resources/AppIcon.icns
+$(RES_DIR)/AppIcon.icns: Resources/AppIcon.icns | dirs
 	@cp Resources/AppIcon.icns $(RES_DIR)/AppIcon.icns
 
-$(FRAMEWORKS_DIR)/Sparkle.framework: $(SPARKLE_FRAMEWORK)
+$(FRAMEWORKS_DIR)/Sparkle.framework: $(SPARKLE_FRAMEWORK) | dirs
 	@echo "→ Embedding Sparkle.framework…"
 	@rm -rf $(FRAMEWORKS_DIR)/Sparkle.framework
 	@cp -R $(SPARKLE_FRAMEWORK) $(FRAMEWORKS_DIR)/Sparkle.framework
