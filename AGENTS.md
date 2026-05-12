@@ -5,7 +5,7 @@ Project instructions for AI coding agents.
 <!-- BEGIN:COPILOT-RULES -->
 ## Coding Guidelines (AI-maintained)
 *Auto-updated by pr-review-reflect — do not edit this section manually.*
-*Last updated: 2026-05-12 from PR #32 review*
+*Last updated: 2026-05-12 from PR #31 review*
 
 ### Performance & Web Vitals
 - Never apply `loading="lazy"` to above-the-fold images; use `fetchpriority="high"` for the primary hero asset to avoid LCP regressions.
@@ -80,6 +80,13 @@ Project instructions for AI coding agents.
 ### Swift & Objective-C Interop
 - When a Swift class is used as an `NSMenuItem` target or referenced via `#selector`, ensure it inherits from `NSObject`; without `NSObject` inheritance the selector is not reliably exposed to the Objective-C runtime and will fail at runtime.
 - When using a `Dictionary` as a cache in Swift, always memoize negative lookups separately (e.g., a `Set<Key>` of known-miss keys), because assigning `nil` via the subscript setter removes the key rather than storing the miss, causing the expensive lookup to repeat on every access.
+
+### Swift Concurrency & AppKit Threading
+- When a Swift type or method calls AppKit APIs (e.g. `NSWorkspace`, `NSImage`), annotate it with `@MainActor` so the compiler enforces main-thread usage and prevents accidental off-thread access.
+
+### Swift Memory Management & Caching
+- Never use an unbounded `Dictionary` to cache images or resources in Swift; use `NSCache` with a `countLimit` (or cache a downscaled/processed representation) to cap memory growth over long runs.
+- When a Swift type is only used within a single file, declare it `private` or `fileprivate` (or nest it inside the consuming type) to minimize API surface and prevent accidental cross-file coupling.
 
 ### Makefile & Parallel Builds
 - When Makefile targets write into directories created by a phony prerequisite (e.g. `dirs`), add order-only prerequisites (`$(TARGET): | dirs`) to every such target so parallel builds (`make -j`) do not race against directory creation.
