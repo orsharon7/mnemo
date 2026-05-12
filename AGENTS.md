@@ -40,6 +40,8 @@ Project instructions for AI coding agents.
 ### CI & Release Workflows
 - When a CI step installs an optional tool that has a built-in fallback, mark that step `continue-on-error: true` so the fallback path can still execute on tool-install failures.
 - Never use `|| true` to suppress all errors from a command; capture the exit code and only ignore known non-fatal failure codes while still surfacing real errors.
+- Never use `[skip ci]` in commit messages when downstream workflows (e.g. Pages deploy, appcast publish) must still run; use a narrower skip mechanism (e.g. workflow-level `paths` filters or `if` conditions) so only the intended workflows are suppressed.
+- When a script uses an early-exit cache check, verify all required artifacts (framework directories, tool binaries, config files) are present — not just the top-level directory — before skipping; a partial cache hit will cause silent downstream failures.
 
 ### Packaging & Build Scripts
 - When creating a DMG with `create-dmg`, stage the `.app` bundle and an `/Applications` symlink in a temporary directory and pass that directory as the source, so the expected file layout is present at the root.
