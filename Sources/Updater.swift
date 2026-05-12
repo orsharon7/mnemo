@@ -11,7 +11,7 @@ final class Updater: NSObject {
 
     private let controller: SPUStandardUpdaterController
 
-    private init() {
+    private override init() {
         // startingUpdater: true asks Sparkle to begin its scheduled checks immediately.
         // delegate / userDriverDelegate left nil → default behaviour (we don't need custom UI).
         controller = SPUStandardUpdaterController(
@@ -19,6 +19,7 @@ final class Updater: NSObject {
             updaterDelegate: nil,
             userDriverDelegate: nil
         )
+        super.init()
     }
 
     /// Action wired to the "Check for Updates…" menu item.
