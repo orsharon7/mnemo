@@ -5,7 +5,7 @@ Project instructions for AI coding agents.
 <!-- BEGIN:COPILOT-RULES -->
 ## Coding Guidelines (AI-maintained)
 *Auto-updated by pr-review-reflect — do not edit this section manually.*
-*Last updated: 2026-05-12 from PR #23 review*
+*Last updated: 2026-05-12 from PR #22 review*
 
 ### Performance & Web Vitals
 - Never apply `loading="lazy"` to above-the-fold images; use `fetchpriority="high"` for the primary hero asset to avoid LCP regressions.
@@ -20,6 +20,11 @@ Project instructions for AI coding agents.
 ### Code Quality
 - Remove unused CSS custom properties (dead variables like `--unused-var`) to keep stylesheets clean and maintainable.
 - Never use inline styles in HTML for layout or theming; define CSS classes instead to ensure maintainability and consistent theming across pages.
+- Never include unused parameters in callback or closure signatures; simplify to only what callers and callees actually need to reduce coupling.
+- Ensure UI helper text, tooltips, and labels accurately describe the actual implemented behavior — not an idealized or broader behavior — to avoid misleading users about privacy or functionality guarantees.
+
+### SwiftUI & Reactive State
+- When reading shared observable state (e.g. a singleton) inside a SwiftUI view body, always observe it via `@ObservedObject` or `@StateObject` so the view re-renders on changes; never access singleton state directly without observation.
 
 ### HTML & Navigation
 - Never use `href="#"` for navigation or brand links; link to a real destination (e.g. `/`, `index.html`, or a named anchor) to avoid dangling hash jumps.
