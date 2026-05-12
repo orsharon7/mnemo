@@ -173,25 +173,54 @@ final class HistoryStore: ObservableObject {
         }
     }
 
+    /// Parse type-filter operators (/url, /json, /pin, /code, /email, /text)
+    /// from the query string. Returns (typeFilters, pinFilter, remainingText).
+    private static func parseOperators(_ q: String) -> (types: Set<ClipEntryType>, pinOnly: Bool, text: String) {
+        var types: Set<ClipEntryType> = []
+        var pinOnly = false
+        var rest: [String] = []
+        let tokens = q.lowercased().components(separatedBy: .whitespaces).filter { !$0.isEmpty }
+        for token in tokens {
+            switch token {
+            case "/url":       types.insert(.url)
+            case "/json":      types.insert(.json)
+            case "/code":      types.insert(.code)
+            case "/email":     types.insert(.email)
+            case "/text":      types.insert(.text)
+            case "/multiline": types.insert(.multiline)
+            case "/pin":       pinOnly = true
+            default:           rest.append(token)
+            }
+        }
+        return (types, pinOnly, rest.joined(separator: " "))
+    }
+
     func search(_ q: String) -> [ClipEntry] {
         let trimmed = q.trimmingCharacters(in: .whitespacesAndNewlines)
         if trimmed.isEmpty { return entries }
-        let needle = trimmed.lowercased()
 
-        let substring = entries.filter { $0.content.lowercased().contains(needle) }
+        let (typeFilters, pinOnly, freeText) = Self.parseOperators(trimmed)
+
+        var pool = entries
+        if !typeFilters.isEmpty { pool = pool.filter { typeFilters.contains($0.type) } }
+        if pinOnly            { pool = pool.filter { $0.isPinned } }
+
+        if freeText.isEmpty { return pool }
+
+        let needle = freeText.lowercased()
+
+        let substring = pool.filter { $0.content.lowercased().contains(needle) }
 
         let useSemantic = Settings.shared.semanticSearchEnabled
             && Embedder.shared.isAvailable
-            && trimmed.count >= 3
+            && needle.count >= 3
 
-        if useSemantic, let qv = Embedder.shared.embed(trimmed) {
-            // NLEmbedding sentence vectors run low; 0.30 is a reasonable signal floor
-            // empirically. We cap top-K to keep noise out.
+        if useSemantic, let qv = Embedder.shared.embed(needle) {
             let threshold: Float = 0.30
             var scored: [(ClipEntry, Float)] = []
-            scored.reserveCapacity(entries.count)
+            scored.reserveCapacity(pool.count)
             let substringIDs = Set(substring.map { $0.id })
-            for e in entries {
+            for e in pool {
                 guard let v = e.vector, !substringIDs.contains(e.id) else { continue }
                 let s = Embedder.cosine(qv, v)
                 if s >= threshold { scored.append((e, s)) }
@@ -205,8 +234,7 @@ final class HistoryStore: ObservableObject {
         if !substring.isEmpty || needle.count < 2 {
             return Self.stableSortPinnedFirst(substring)
         }
-        // Last resort: fuzzy subsequence.
-        let fuzzy = entries.filter { Self.isSubsequence(needle, of: $0.content.lowercased()) }
+        let fuzzy = pool.filter { Self.isSubsequence(needle, of: $0.content.lowercased()) }
         return Self.stableSortPinnedFirst(fuzzy)
     }
 
