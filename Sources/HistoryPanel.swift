@@ -416,14 +416,14 @@ struct SearchField: NSViewRepresentable {
 
     func makeNSView(context: Context) -> NSTextField {
         let tf = NSTextField()
+        tf.font = NSFont.systemFont(ofSize: 18, weight: .regular)
         tf.placeholderAttributedString = NSAttributedString(
             string: "Search clipboard history…",
             attributes: [
                 .foregroundColor: NSColor.secondaryLabelColor,
-                .font: NSFont.systemFont(ofSize: 18, weight: .regular)
+                .font: tf.font!
             ]
         )
-        tf.font = NSFont.systemFont(ofSize: 18, weight: .regular)
         tf.textColor = NSColor.labelColor
         tf.isBordered = false
         tf.drawsBackground = false
