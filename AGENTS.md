@@ -63,6 +63,7 @@ Project instructions for AI coding agents.
 - Split user input on `\s` (including newlines) so tokens are recognized in pasted multi-line input.
 - Escape/split `]]>` before inserting arbitrary text into XML CDATA sections.
 - Pass `encoding="utf-8"` (and `newline="\n"` for stable diffs) to `open()`, `Path.read_text()`, and `Path.write_text()`.
+- When stripping tokens or operators via regex, consume adjacent whitespace in the same substitution to prevent doubled spaces in the resulting string.
 
 <!-- END:COPILOT-RULES -->
 
