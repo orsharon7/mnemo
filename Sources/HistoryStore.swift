@@ -130,10 +130,11 @@ final class HistoryStore: ObservableObject {
         let hash = sha256(text)
         let detectedType = TypeDetector.detect(text)
         DispatchQueue.main.async {
-            if let idx = self.entries.firstIndex(where: { $0.contentHash == hash }) {
+            if let idx = self.entries.firstIndex(where: { $0.contentHash == hash && $0.content == text }) {
                 var existing = self.entries.remove(at: idx)
                 existing.lastUsedAt = Date()
-                existing.copyCount += 1
+                let (newCount, overflow) = existing.copyCount.addingReportingOverflow(1)
+                existing.copyCount = overflow ? Int.max : newCount
                 existing.sourceBundle = sourceBundle
                 existing.sourceName = sourceName
                 if existing.vector == nil {
