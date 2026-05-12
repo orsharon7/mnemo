@@ -61,6 +61,7 @@ Project instructions for AI coding agents.
 
 ### Security & Supply Chain
 - When a CI script downloads a remote tarball or binary and later executes it, always verify its integrity (pinned SHA256 checksum or published signature) before extraction or use to reduce supply-chain risk.
+- When a script exposes an environment variable to override a pinned dependency version, also expose a corresponding variable to override the expected checksum; never advertise version overridability while keeping the checksum hardcoded, as the override will always fail verification.
 
 ### Data Serialization & XML
 - When inserting arbitrary text into XML CDATA sections, ensure the content cannot contain the CDATA terminator `]]>`; either escape/split the sequence or build the XML using a library that handles escaping automatically.
