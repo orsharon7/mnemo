@@ -10,7 +10,7 @@ Project instructions for AI coding agents.
 ### Frontend & CSS
 - Set `fetchpriority="high"` on the primary hero image; never `loading="lazy"` on above-the-fold images.
 - Add `@media (prefers-reduced-motion: reduce)` disabling `scroll-behavior: smooth` and reducing transitions/transforms.
-- Declare a solid-color fallback before any modern CSS (`color-mix()`, container queries, `:has()`); for `-webkit-text-fill-color: transparent` gradient text, add a non-`color-mix()` fallback gradient first.
+- Declare a solid-color fallback before `color-mix()`, container queries, or `:has()`; for `-webkit-text-fill-color: transparent` gradient text, add a non-`color-mix()` fallback gradient first.
 - Use CSS classes for layout/theming; never inline styles; remove unused custom properties.
 - Never use `href="#"`; use relative links (`index.html`, `./`) for subpath-deployed sites.
 - Link download CTAs to `.../releases/latest/download/<asset>`, not an intermediate release page.
@@ -50,8 +50,8 @@ Project instructions for AI coding agents.
 - **Async & state:** Capture lazily-evaluated values into a `let` before `DispatchQueue.main.async`. Declare `NSRegularExpression` as `static let`; observe shared singletons via `@ObservedObject`/`@StateObject`. Reset all ephemeral `@State` (focus, selection, query, scroll) in the panel-opened handler on every show. Consolidate dependent `.onReceive` subscriptions on sibling views into one handler.
 - **Layout & access:** Use `Color.clear.frame(height:)` or padding for fixed-height gaps — never `Spacer().frame(height:)`. Declare types used only within one file `private` or `fileprivate`.
 - **Lazy embedding:** Skip embedding if a non-nil vector already exists; compute embeddings off the main thread.
-- **Display scale & hairlines:** Use `@Environment(\.displayScale)` or `window.screen?.backingScaleFactor` for per-pixel sizing; derive `lineWidth` from display scale (`1 / displayScale`) for exact 1px Retina strokes. Never use `NSScreen.main?.backingScaleFactor` or hard-code `lineWidth: 1`. Declare `@Environment(\.displayScale) private var displayScale` in every SwiftUI view that computes pixel-aligned sizes; do not reference it before declaring it.
-- **Force-unwrap:** Never force-unwrap (`!`) a value that can be safely unwrapped; prefer `guard let`, `if let`, or nil-coalescing — even when the value appears guaranteed at the call site.
+- **Display scale & hairlines:** Use `@Environment(\.displayScale)` or `window.screen?.backingScaleFactor` for per-pixel sizing; derive `lineWidth` as `1 / displayScale` for exact 1px Retina strokes. Never use `NSScreen.main?.backingScaleFactor` or hard-code `lineWidth: 1`. Declare `@Environment(\.displayScale) private var displayScale` in every SwiftUI view that computes pixel-aligned sizes; do not reference it before declaring it.
+- **Force-unwrap:** Never force-unwrap (`!`); prefer `guard let`, `if let`, or nil-coalescing.
 - **Focus management:** Gate `makeFirstResponder` in `makeNSView` on the `isFocused` binding; drive focus changes through `updateNSView`.
 
 ### Search, Text Processing & Python
