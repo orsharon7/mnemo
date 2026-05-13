@@ -9,9 +9,14 @@ enum StatsRange: String, CaseIterable, Identifiable {
     var id: String { rawValue }
 
     func contains(_ d: Date, now: Date = Date()) -> Bool {
+        let cal = Calendar.current
         switch self {
-        case .week:    return d >= now.addingTimeInterval(-7 * 24 * 3600)
-        case .month:   return d >= now.addingTimeInterval(-30 * 24 * 3600)
+        case .week:
+            let weekAgo = cal.date(byAdding: .day, value: -7, to: now) ?? now.addingTimeInterval(-7 * 24 * 3600)
+            return d >= weekAgo
+        case .month:
+            let monthStart = cal.date(from: cal.dateComponents([.year, .month], from: now)) ?? now.addingTimeInterval(-30 * 24 * 3600)
+            return d >= monthStart
         case .allTime: return true
         }
     }
@@ -41,13 +46,26 @@ struct StatsView: View {
 
     private var captureRate: Double {
         let span: Double
+        let capturedInRange: Int
+        let cal = Calendar.current
         if range == .allTime {
             guard let oldest = store.entries.map({ $0.createdAt }).min() else { return 0 }
             span = max(1, now.timeIntervalSince(oldest) / 86400)
+            capturedInRange = store.entries.count
         } else {
-            span = range.spanDays
+            let rangeStart: Date
+            switch range {
+            case .week:
+                rangeStart = cal.date(byAdding: .day, value: -7, to: now) ?? now.addingTimeInterval(-7 * 24 * 3600)
+            case .month:
+                rangeStart = cal.date(from: cal.dateComponents([.year, .month], from: now)) ?? now.addingTimeInterval(-30 * 24 * 3600)
+            case .allTime:
+                rangeStart = now
+            }
+            span = max(1, now.timeIntervalSince(rangeStart) / 86400)
+            capturedInRange = store.entries.filter { $0.createdAt >= rangeStart }.count
         }
-        return Double(filtered.count) / span
+        return Double(capturedInRange) / span
     }
 
     /// 24-bucket histogram of `lastUsedAt` hours within the selected range.
@@ -134,7 +152,7 @@ struct StatsView: View {
 
     private var topClipsSection: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("Most used")
+            Text("Most used (lifetime copies)")
                 .font(.system(size: 13, weight: .semibold))
                 .foregroundStyle(.secondary)
             if topClips.isEmpty {
