@@ -98,7 +98,7 @@ struct StatsView: View {
         }
         .frame(minWidth: 560, minHeight: 520)
         .onAppear { now = Date() }
-        .onChange(of: range) { now = Date() }
+        .onChange(of: range) { _, _ in now = Date() }
     }
 
     private var summaryRow: some View {
