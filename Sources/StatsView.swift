@@ -2,7 +2,7 @@ import SwiftUI
 import AppKit
 
 enum StatsRange: String, CaseIterable, Identifiable {
-    case week = "This Week"
+    case week = "Last 7 Days"
     case month = "This Month"
     case allTime = "All Time"
 
@@ -72,11 +72,12 @@ struct StatsView: View {
                 Text("Stats")
                     .font(.system(size: 18, weight: .semibold))
                 Spacer()
-                Picker("", selection: $range) {
+                Picker("Time Range", selection: $range) {
                     ForEach(StatsRange.allCases) { r in
                         Text(r.rawValue).tag(r)
                     }
                 }
+                .labelsHidden()
                 .pickerStyle(.segmented)
                 .frame(width: 320)
             }
@@ -96,6 +97,8 @@ struct StatsView: View {
             }
         }
         .frame(minWidth: 560, minHeight: 520)
+        .onAppear { now = Date() }
+        .onChange(of: range) { now = Date() }
     }
 
     private var summaryRow: some View {
