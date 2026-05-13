@@ -254,7 +254,6 @@ final class HistoryStore: ObservableObject {
         if freeTextTrimmed.isEmpty { return pool }
 
         let needle = freeTextTrimmed.lowercased()
-
         let substring = pool.filter { $0.content.lowercased().contains(needle) }
 
         let useSemantic = Settings.shared.semanticSearchEnabled
@@ -262,19 +261,13 @@ final class HistoryStore: ObservableObject {
             && freeTextTrimmed.count >= 3
 
         if useSemantic, let qv = Embedder.shared.embed(freeTextTrimmed) {
-            let threshold: Float = 0.30
-            var scored: [(ClipEntry, Float)] = []
-            scored.reserveCapacity(pool.count)
-            let substringIDs = Set(substring.map { $0.id })
-            for e in pool {
-                guard let v = e.vector, !substringIDs.contains(e.id) else { continue }
-                let s = Embedder.cosine(qv, v)
-                if s >= threshold { scored.append((e, s)) }
-            }
-            scored.sort { $0.1 > $1.1 }
-            let semantic = scored.prefix(10).map { $0.0 }
-            let merged = substring + semantic
-            return Self.stableSortPinnedFirst(merged)
+            return Self.stableSortPinnedFirst(
+                Self.rerankSemantic(query: needle,
+                                    queryVector: qv,
+                                    pool: pool,
+                                    substringMatches: substring,
+                                    now: Date())
+            )
         }
 
         if !substring.isEmpty || needle.count < 2 {
@@ -283,6 +276,64 @@ final class HistoryStore: ObservableObject {
         let fuzzy = pool.filter { Self.isSubsequence(needle, of: $0.content.lowercased()) }
         return Self.stableSortPinnedFirst(fuzzy)
     }
+
+    // MARK: - Semantic reranking
+
+    /// Cosine threshold below which a candidate is dropped entirely.
+    private static let semanticFloor: Float = 0.22
+    /// Max semantic results returned (in addition to substring matches).
+    private static let semanticTopK = 12
+    /// Recency half-life in days for the recency boost.
+    private static let recencyHalfLifeDays: Double = 7
+
+    /// Combined-score rerank: cosine similarity, recency decay, and source-app affinity.
+    /// Substring hits get a synthetic cosine of 1.0 so they sort to the top, then we layer
+    /// the same recency/affinity boost on everything for a single ranked list.
+    static func rerankSemantic(query: String,
+                               queryVector: [Float],
+                               pool: [ClipEntry],
+                               substringMatches: [ClipEntry],
+                               now: Date) -> [ClipEntry] {
+        let substringIDs = Set(substringMatches.map { $0.id })
+
+        // Source-app affinity: how often each source bundle appears in the pool.
+        var bundleCounts: [String: Int] = [:]
+        for e in pool {
+            if let b = e.sourceBundle { bundleCounts[b, default: 0] += 1 }
+        }
+        let maxBundleCount = max(1, bundleCounts.values.max() ?? 1)
+
+        var scored: [(entry: ClipEntry, score: Float)] = []
+        scored.reserveCapacity(pool.count)
+
+        for e in pool {
+            let cosine: Float
+            if substringIDs.contains(e.id) {
+                cosine = 1.0
+            } else if let v = e.vector {
+                cosine = Embedder.cosine(queryVector, v)
+            } else {
+                continue
+            }
+            if cosine < semanticFloor { continue }
+
+            let ageDays = max(0, now.timeIntervalSince(e.lastUsedAt) / 86400)
+            let recency = Float(pow(0.5, ageDays / recencyHalfLifeDays))   // 1.0 → 0.5 per half-life
+
+            let affinity: Float = {
+                guard let b = e.sourceBundle, let c = bundleCounts[b] else { return 0 }
+                return Float(c) / Float(maxBundleCount)
+            }()
+
+            // Weights: similarity dominates, recency nudges, affinity is a tiebreaker.
+            let final = 0.70 * cosine + 0.20 * recency + 0.10 * affinity
+            scored.append((e, final))
+        }
+
+        scored.sort { $0.score > $1.score }
+        return Array(scored.prefix(substringMatches.count + semanticTopK).map { $0.entry })
+    }
+
 
     private static func stableSortPinnedFirst(_ list: [ClipEntry]) -> [ClipEntry] {
         let pinned = list.filter { $0.isPinned }
