@@ -5,7 +5,7 @@ Project instructions for AI coding agents.
 <!-- BEGIN:COPILOT-RULES -->
 ## Coding Guidelines (AI-maintained)
 *Auto-updated by pr-review-reflect — do not edit this section manually.*
-*Last updated: 2026-05-13 from PR #36 review*
+*Last updated: 2026-05-13 from PR #38 review*
 
 ### Frontend & CSS
 - Set `fetchpriority="high"` on the primary hero image; never `loading="lazy"` on above-the-fold images.
@@ -41,6 +41,8 @@ Project instructions for AI coding agents.
 
 ### Swift
 - **Threading:** Annotate types/methods calling AppKit APIs (`NSWorkspace`, `NSImage`, etc.) with `@MainActor`.
+- **URL opening:** Capture and return the `Bool` result of `NSWorkspace.shared.open(_:)`; never ignore it or return `true` unconditionally.
+- **URL scheme restriction:** When opening URLs intended for a browser, restrict allowed schemes to `http`/`https`; reject `file:`, `tel:`, and other custom schemes to avoid launching unexpected handlers.
 - **ObjC interop:** Classes used as `NSMenuItem` targets or via `#selector` must inherit from `NSObject`.
 - **Appearance:** Use semantic system colors (`NSColor.controlBackgroundColor`, `.windowBackgroundColor`, `.separatorColor`, etc.); never hard-code `Color(white:)`, `Color(red:green:blue:)`, or literal hex values.
 - **Caching:** Use `NSCache` with a `countLimit`; memoize negative lookups in a separate bounded `Set<Key>` (`dict[key] = nil` removes the entry, not caches a miss).
