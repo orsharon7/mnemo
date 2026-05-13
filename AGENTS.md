@@ -5,7 +5,7 @@ Project instructions for AI coding agents.
 <!-- BEGIN:COPILOT-RULES -->
 ## Coding Guidelines (AI-maintained)
 *Auto-updated by pr-review-reflect — do not edit this section manually.*
-*Last updated: 2026-05-13 from PR #37 review*
+*Last updated: 2026-05-13 from PR #36 review*
 
 ### Frontend & CSS
 - Set `fetchpriority="high"` on the primary hero image; never `loading="lazy"` on above-the-fold images.
@@ -59,6 +59,9 @@ Project instructions for AI coding agents.
 - **Metric scoping:** When ranking or aggregating items within a selected time range, use a metric scoped to that range (not a lifetime counter); ensure UI labels match the actual metric being computed.
 - **Capture rate:** Compute "capture rate" (or any creation-based metric) from `createdAt` within the range, not `lastUsedAt`; keep the numerator semantics consistent with the metric's name and tooltip.
 - **Sort pass ordering:** When multiple sort passes run in sequence (e.g. pinned-first after relevance ranking), verify their combined effect matches documented priority guarantees; if one pass can override another's ordering, document the precedence rule explicitly and keep PR descriptions accurate.
+- **Time snapshot:** Capture a single `let now = Date()` at the start of each render pass or refresh; never use a computed `var now` that calls `Date()` repeatedly, as multiple accesses within one pass can return different times and produce inconsistent range boundaries or counts.
+- **Range-start helpers:** Extract a single `startDate(now:)` (or equivalent) method on range/enum types and reuse it everywhere; never duplicate range-start logic across computed properties — divergence causes silent inconsistencies. Eliminate unreachable `switch` arms (e.g., a `.allTime` case inside a branch already guarded by `range != .allTime`).
+- **Unused properties with fixed approximations:** Remove or replace properties whose fixed/hardcoded values diverge from their semantic definition (e.g., `spanDays = 30` for a calendar month that can be 28–31 days) until a correct, calendar-aware implementation is needed; a dormant property with a wrong value is a future bug.
 
 ### Search, Text Processing & Python
 - Preprocess indexed content and queries identically (case folding, whitespace normalization); preserve original-cased text for embeddings/display.
