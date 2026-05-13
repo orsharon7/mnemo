@@ -68,6 +68,7 @@ struct HistoryPanel: View {
     @ObservedObject var panelState: PanelState
     @ObservedObject var settings: Settings = .shared
     var onPick: (ClipEntry) -> Void
+    var onPickFilled: ((ClipEntry, String) -> Void)? = nil
     var onDismiss: () -> Void
     var onExcludeApp: ((String) -> Void)?
 
@@ -78,6 +79,9 @@ struct HistoryPanel: View {
     @State private var previewing: ClipEntry?
     @State private var isSearchFocused: Bool = true
     @State private var scrollToTopToken: Int = 0
+    @State private var templateEntry: ClipEntry? = nil
+    @State private var templatePlaceholders: [SnippetPlaceholder] = []
+    @State private var templateValues: [String: String] = [:]
 
     private var filtered: [ClipEntry] {
         store.search(query)
@@ -85,7 +89,39 @@ struct HistoryPanel: View {
 
     var body: some View {
         let filteredEntries = filtered
-        return VStack(spacing: 0) {
+        return Group {
+            if let tEntry = templateEntry {
+                SnippetFormView(
+                    entry: tEntry,
+                    placeholders: templatePlaceholders,
+                    values: $templateValues,
+                    onCommit: commitTemplate,
+                    onCancel: cancelTemplate
+                )
+                .frame(minWidth: 600, minHeight: 400)
+            } else {
+                searchAndListBody(filteredEntries: filteredEntries)
+            }
+        }
+        .onChange(of: query) { _, _ in selectionIndex = 0 }
+        .onReceive(NotificationCenter.default.publisher(for: .clipMatePanelOpened)) { _ in
+            query = ""
+            selectionIndex = 0
+            previewing = nil
+            isSearchFocused = true
+            scrollToTopToken &+= 1
+            templateEntry = nil
+            templatePlaceholders = []
+            templateValues = [:]
+        }
+        .sheet(item: $previewing) { entry in
+            QuickLookView(entry: entry) { previewing = nil }
+        }
+    }
+
+    @ViewBuilder
+    private func searchAndListBody(filteredEntries: [ClipEntry]) -> some View {
+        VStack(spacing: 0) {
             SearchField(text: $query,
                         isFocused: $isSearchFocused,
                         onSubmit: commitSelection,
@@ -168,6 +204,7 @@ struct HistoryPanel: View {
                 }
                 Text("⌘1–9 quick").foregroundStyle(.secondary)
                 Text("/url /json /pin /code /email /text /multiline").foregroundStyle(.tertiary)
+                Text("⏎ on pinned {{template}} to fill").foregroundStyle(.tertiary)
                 Spacer()
                 if let bundleID = panelState.previousAppBundleID,
                    let name = panelState.previousAppName,
@@ -186,23 +223,42 @@ struct HistoryPanel: View {
             .padding(.vertical, 6)
         }
         .frame(minWidth: 600, minHeight: 400)
-        .onChange(of: query) { _, _ in selectionIndex = 0 }
-        .onReceive(NotificationCenter.default.publisher(for: .clipMatePanelOpened)) { _ in
-            query = ""
-            selectionIndex = 0
-            previewing = nil
-            isSearchFocused = true
-            scrollToTopToken &+= 1
-        }
-        .sheet(item: $previewing) { entry in
-            QuickLookView(entry: entry) { previewing = nil }
-        }
     }
 
     private func commitSelection() {
         guard !filtered.isEmpty else { return }
         let idx = min(max(0, selectionIndex), filtered.count - 1)
-        onPick(filtered[idx])
+        let entry = filtered[idx]
+        if entry.isPinned, SnippetTemplate.hasPlaceholders(entry.content) {
+            beginTemplate(for: entry)
+            return
+        }
+        onPick(entry)
+    }
+
+    private func beginTemplate(for entry: ClipEntry) {
+        let phs = SnippetTemplate.placeholders(in: entry.content)
+        guard !phs.isEmpty else { onPick(entry); return }
+        templatePlaceholders = phs
+        templateValues = Dictionary(uniqueKeysWithValues: phs.map { ($0.name, "") })
+        templateEntry = entry
+    }
+
+    private func commitTemplate() {
+        guard let entry = templateEntry else { return }
+        let filled = SnippetTemplate.fill(entry.content, with: templateValues)
+        let pick = onPickFilled ?? { e, _ in onPick(e) }
+        templateEntry = nil
+        templatePlaceholders = []
+        templateValues = [:]
+        pick(entry, filled)
+    }
+
+    private func cancelTemplate() {
+        templateEntry = nil
+        templatePlaceholders = []
+        templateValues = [:]
+        isSearchFocused = true
     }
 
     private func handleEscape() {
@@ -565,6 +621,109 @@ struct SearchField: NSViewRepresentable {
 
         @objc func submit(_ sender: Any?) {
             parent.onSubmit()
+        }
+    }
+}
+
+// MARK: - Snippet template form
+
+struct SnippetFormView: View {
+    let entry: ClipEntry
+    let placeholders: [SnippetPlaceholder]
+    @Binding var values: [String: String]
+    var onCommit: () -> Void
+    var onCancel: () -> Void
+
+    @Environment(\.displayScale) private var displayScale
+    @FocusState private var focused: String?
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            HStack(spacing: 8) {
+                Image(systemName: "pin.fill").foregroundStyle(.orange)
+                Text("Fill in template").font(.headline)
+                Spacer()
+                Text("Tab next \u{00B7} Return paste \u{00B7} Esc cancel")
+                    .font(.caption).foregroundStyle(.tertiary)
+            }
+            .padding(.horizontal, 14)
+            .padding(.vertical, 10)
+
+            Color(NSColor.separatorColor).frame(height: 1 / displayScale)
+
+            ScrollView {
+                VStack(alignment: .leading, spacing: 14) {
+                    ForEach(Array(placeholders.enumerated()), id: \.element.name) { idx, p in
+                        VStack(alignment: .leading, spacing: 4) {
+                            HStack(spacing: 6) {
+                                Text(p.name)
+                                    .font(.system(.caption, design: .monospaced).bold())
+                                    .foregroundStyle(.secondary)
+                                if let def = p.defaultValue, !def.isEmpty {
+                                    Text("default: \(def)")
+                                        .font(.caption2)
+                                        .foregroundStyle(.tertiary)
+                                }
+                            }
+                            TextField(p.defaultValue ?? "Value for \(p.name)", text: bindingFor(p.name))
+                                .textFieldStyle(.roundedBorder)
+                                .focused($focused, equals: p.name)
+                                .onSubmit { advanceOrCommit(from: idx) }
+                        }
+                    }
+                }
+                .padding(14)
+            }
+
+            Color(NSColor.separatorColor).frame(height: 1 / displayScale)
+
+            VStack(alignment: .leading, spacing: 6) {
+                Text("Preview").font(.caption).foregroundStyle(.secondary)
+                ScrollView {
+                    Text(SnippetTemplate.fill(entry.content, with: values))
+                        .font(.system(.body, design: .monospaced))
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .textSelection(.enabled)
+                        .padding(8)
+                        .background(
+                            RoundedRectangle(cornerRadius: 6)
+                                .fill(Color(NSColor.textBackgroundColor).opacity(0.6))
+                        )
+                }
+                .frame(maxHeight: 120)
+            }
+            .padding(14)
+
+            Color(NSColor.separatorColor).frame(height: 1 / displayScale)
+
+            HStack {
+                Spacer()
+                Button("Cancel", action: onCancel)
+                    .keyboardShortcut(.cancelAction)
+                Button("Paste", action: onCommit)
+                    .keyboardShortcut(.defaultAction)
+            }
+            .padding(.horizontal, 14)
+            .padding(.vertical, 10)
+        }
+        .onAppear {
+            focused = placeholders.first?.name
+        }
+    }
+
+    private func bindingFor(_ name: String) -> Binding<String> {
+        Binding(
+            get: { values[name] ?? "" },
+            set: { values[name] = $0 }
+        )
+    }
+
+    private func advanceOrCommit(from idx: Int) {
+        let next = idx + 1
+        if next < placeholders.count {
+            focused = placeholders[next].name
+        } else {
+            onCommit()
         }
     }
 }

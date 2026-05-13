@@ -76,7 +76,9 @@ final class PanelController {
         panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .transient]
 
         let content = HistoryPanel(store: store, panelState: panelState, onPick: { [weak self] entry in
-            self?.commit(entry: entry)
+            self?.commit(entry: entry, override: nil)
+        }, onPickFilled: { [weak self] entry, filled in
+            self?.commit(entry: entry, override: filled)
         }, onDismiss: { [weak self] in
             self?.hide()
         }, onExcludeApp: { bundleID in
@@ -91,10 +93,10 @@ final class PanelController {
         return panel
     }
 
-    private func commit(entry: ClipEntry) {
+    private func commit(entry: ClipEntry, override: String?) {
         let pb = NSPasteboard.general
         pb.clearContents()
-        pb.setString(entry.content, forType: .string)
+        pb.setString(override ?? entry.content, forType: .string)
         store.useEntry(entry)
         let shouldAutoPaste = Settings.shared.autoPasteOnEnter
         hide()
