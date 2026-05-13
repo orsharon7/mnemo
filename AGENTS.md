@@ -5,7 +5,7 @@ Project instructions for AI coding agents.
 <!-- BEGIN:COPILOT-RULES -->
 ## Coding Guidelines (AI-maintained)
 *Auto-updated by pr-review-reflect — do not edit this section manually.*
-*Last updated: 2026-05-13 from PR #36 review (optimized)*
+*Last updated: 2026-05-13 from PR #36 review*
 
 ### Code Quality
 - Remove unused imports and unused callback/closure parameters; prefix intentionally-kept parameters with `_`.
@@ -55,7 +55,7 @@ Project instructions for AI coding agents.
 - **Numeric safety:** Clamp decoded integer fields immediately after decoding (e.g. `copyCount = max(1, decoded)`); use overflow-safe arithmetic (`addingReportingOverflow` / `saturatingAdd`) for runtime counters; re-clamp after migration/merge.
 - **Deduplication:** Use SHA256 (CryptoKit) plus `content` equality; on match, update all metadata fields — never only the timestamp. Prefer non-nil over nil when collapsing duplicates. On hash algorithm change, recompute `contentHash` from `content` for all entries in `load()` before deduplication.
 - **Data consistency:** Define one explicit merge rule per field; re-sort with the canonical comparator after any merge pass; persist immediately when a load-time migration detects changes.
-- **Async & state:** Capture lazily-evaluated values into a `let` before `DispatchQueue.main.async`. Declare `NSRegularExpression` as `static let`; observe shared singletons via `@ObservedObject`/`@StateObject`. Reset all ephemeral `@State` (focus, selection, query, scroll) in the panel-opened handler on every show. Consolidate sibling `.onReceive` subscriptions on the same publisher into one handler.
+- **Async & state:** Capture lazily-evaluated values into a `let` before `DispatchQueue.main.async`. Declare `NSRegularExpression` as `static let`; observe shared singletons via `@ObservedObject`/`@StateObject`. Reset all ephemeral `@State` (focus, selection, query, scroll) in the panel-opened handler on every show. Consolidate sibling `.onReceive` subscriptions on the same publisher into one handler. Always use the current SwiftUI `onChange` closure signature that accepts parameters (`{ _, _ in … }` or `{ _ in … }`); never use the zero-parameter form, which fails to compile with modern toolchains.
 - **Layout:** Use `Color.clear.frame(height:)` or padding for fixed-height gaps — never `Spacer().frame(height:)`. Declare types used only within one file `private` or `fileprivate`.
 - **Display scale & hairlines:** Declare `@Environment(\.displayScale) private var displayScale` in every SwiftUI view that computes pixel-aligned sizes; derive `lineWidth` as `1 / displayScale`. Never use `NSScreen.main?.backingScaleFactor` or hard-code `lineWidth: 1`.
 - **Force-unwrap:** Never force-unwrap (`!`); prefer `guard let`, `if let`, or nil-coalescing.
