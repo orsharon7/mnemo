@@ -12,8 +12,12 @@ enum QuickAction {
     private static func isOpenable(_ trimmed: String) -> Bool {
         // Detect host:port patterns (e.g. localhost:3000, example.com:8080) FIRST,
         // before URL(string:) can misidentify the host as a scheme.
-        let isHostPort = trimmed.range(of: #"^[a-zA-Z0-9][a-zA-Z0-9.\-]*:[0-9]+"#,
-                                       options: .regularExpression) != nil
+        // The pre-colon token must look like a hostname: either "localhost", an IPv4
+        // literal (digits and dots only), or a name containing at least one dot.
+        // This prevents scheme-like strings (tel:123, mailto:25) from matching.
+        let isHostPort = trimmed.range(
+            of: #"^(localhost|[0-9]+(?:\.[0-9]+){3}|[a-zA-Z0-9][a-zA-Z0-9\-]*(?:\.[a-zA-Z0-9][a-zA-Z0-9\-]*)++):[0-9]+"#,
+            options: .regularExpression) != nil
         if isHostPort {
             return URL(string: "https://" + trimmed) != nil
         }
