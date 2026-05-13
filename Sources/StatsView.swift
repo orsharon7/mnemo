@@ -8,25 +8,21 @@ enum StatsRange: String, CaseIterable, Identifiable {
 
     var id: String { rawValue }
 
-    func contains(_ d: Date, now: Date = Date()) -> Bool {
+    func startDate(now: Date) -> Date? {
         let cal = Calendar.current
         switch self {
         case .week:
-            let weekAgo = cal.date(byAdding: .day, value: -7, to: now) ?? now.addingTimeInterval(-7 * 24 * 3600)
-            return d >= weekAgo
+            return cal.date(byAdding: .day, value: -7, to: now) ?? now.addingTimeInterval(-7 * 24 * 3600)
         case .month:
-            let monthStart = cal.date(from: cal.dateComponents([.year, .month], from: now)) ?? now.addingTimeInterval(-30 * 24 * 3600)
-            return d >= monthStart
-        case .allTime: return true
+            return cal.date(from: cal.dateComponents([.year, .month], from: now)) ?? now.addingTimeInterval(-30 * 24 * 3600)
+        case .allTime:
+            return nil
         }
     }
 
-    var spanDays: Double {
-        switch self {
-        case .week:    return 7
-        case .month:   return 30
-        case .allTime: return 0   // computed from data
-        }
+    func contains(_ d: Date, now: Date = Date()) -> Bool {
+        guard let start = startDate(now: now) else { return true }
+        return d >= start
     }
 }
 
@@ -34,7 +30,7 @@ struct StatsView: View {
     @ObservedObject var store: HistoryStore
     @State private var range: StatsRange = .week
 
-    private var now: Date { Date() }
+    @State private var now: Date = Date()
 
     private var filtered: [ClipEntry] {
         store.entries.filter { range.contains($0.lastUsedAt, now: now) }
@@ -47,21 +43,12 @@ struct StatsView: View {
     private var captureRate: Double {
         let span: Double
         let capturedInRange: Int
-        let cal = Calendar.current
         if range == .allTime {
             guard let oldest = store.entries.map({ $0.createdAt }).min() else { return 0 }
             span = max(1, now.timeIntervalSince(oldest) / 86400)
             capturedInRange = store.entries.count
         } else {
-            let rangeStart: Date
-            switch range {
-            case .week:
-                rangeStart = cal.date(byAdding: .day, value: -7, to: now) ?? now.addingTimeInterval(-7 * 24 * 3600)
-            case .month:
-                rangeStart = cal.date(from: cal.dateComponents([.year, .month], from: now)) ?? now.addingTimeInterval(-30 * 24 * 3600)
-            case .allTime:
-                rangeStart = now
-            }
+            guard let rangeStart = range.startDate(now: now) else { return 0 }
             span = max(1, now.timeIntervalSince(rangeStart) / 86400)
             capturedInRange = store.entries.filter { $0.createdAt >= rangeStart }.count
         }
