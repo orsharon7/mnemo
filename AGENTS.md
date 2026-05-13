@@ -5,7 +5,14 @@ Project instructions for AI coding agents.
 <!-- BEGIN:COPILOT-RULES -->
 ## Coding Guidelines (AI-maintained)
 *Auto-updated by pr-review-reflect — do not edit this section manually.*
-*Last updated: 2026-05-13 from PR #38 review (optimized)*
+*Last updated: 2026-05-13 from PR #36 review (optimized)*
+
+### Code Quality
+- Remove unused imports and unused callback/closure parameters; prefix intentionally-kept parameters with `_`.
+- Insert separators (`•`, `|`, `/`) only when both adjacent items are present.
+- Keep UI labels, tooltips, comments, and PR descriptions in sync with actual behavior in the same commit.
+- Write inline comments as complete sentences; remove stray fragments.
+- Verify every acceptance criterion before closing a PR.
 
 ### Frontend & CSS
 - Set `fetchpriority="high"` on the primary hero image; never `loading="lazy"` on above-the-fold images.
