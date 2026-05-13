@@ -12,9 +12,13 @@ enum QuickAction {
         }
         // RFC-3986 scheme: letter followed by letters/digits/+/-/. then colon.
         // Catches mailto:, file:, tel:, ftp:, and // protocol-relative strings.
-        let hasExplicitScheme = trimmed.hasPrefix("//") ||
+        // Exception: host:port patterns like localhost:3000 or example.com:8080
+        // should still fall through to the https fallback.
+        let isHostPort = trimmed.range(of: #"^[a-zA-Z0-9][a-zA-Z0-9.\-]*:[0-9]+"#,
+                                       options: .regularExpression) != nil
+        let hasExplicitScheme = !isHostPort && (trimmed.hasPrefix("//") ||
             trimmed.range(of: #"^[a-zA-Z][a-zA-Z0-9+\-.]*:"#,
-                          options: .regularExpression) != nil
+                          options: .regularExpression) != nil)
         if hasExplicitScheme { return false }
         return URL(string: "https://" + trimmed) != nil
     }
