@@ -4,26 +4,28 @@ import AppKit
 /// Type-aware "open" action triggered by ⌘O on the selected clip.
 enum QuickAction {
 
-    /// Returns true when `trimmed` is directly openable as-is, or can be opened
-    /// with an https:// prefix. Protocol-relative strings (`//...`) are treated
-    /// as https-prefixable and therefore openable.
+    private static let browserSchemes: Set<String> = ["http", "https"]
+
+    /// Returns true when `trimmed` is openable as an http/https URL (directly or
+    /// via https:// prefix). Protocol-relative strings (`//...`) and bare host:port
+    /// strings (e.g. `localhost:3000`) are treated as https-prefixable.
     private static func isOpenable(_ trimmed: String) -> Bool {
-        // Already has an explicit scheme (http, https, ftp, file, mailto, …) — openable directly.
-        if let url = URL(string: trimmed), url.scheme != nil {
-            return true
+        // Detect host:port patterns (e.g. localhost:3000, example.com:8080) FIRST,
+        // before URL(string:) can misidentify the host as a scheme.
+        let isHostPort = trimmed.range(of: #"^[a-zA-Z0-9][a-zA-Z0-9.\-]*:[0-9]+"#,
+                                       options: .regularExpression) != nil
+        if isHostPort {
+            return URL(string: "https://" + trimmed) != nil
         }
         // Protocol-relative (//example.com) — will be prefixed with https:.
         if trimmed.hasPrefix("//") {
             return URL(string: "https:" + trimmed) != nil
         }
-        // Exception: host:port patterns like localhost:3000 or example.com:8080
-        // should still fall through to the https fallback (not treated as explicit scheme).
-        let isHostPort = trimmed.range(of: #"^[a-zA-Z0-9][a-zA-Z0-9.\-]*:[0-9]+"#,
-                                       options: .regularExpression) != nil
-        let hasExplicitScheme = !isHostPort &&
-            trimmed.range(of: #"^[a-zA-Z][a-zA-Z0-9+\-.]*:"#,
-                          options: .regularExpression) != nil
-        if hasExplicitScheme { return true }
+        // Explicit scheme: only allow http/https.
+        if let url = URL(string: trimmed), let scheme = url.scheme {
+            return browserSchemes.contains(scheme)
+        }
+        // Bare host (no scheme, no port) — try https:// prefix.
         return URL(string: "https://" + trimmed) != nil
     }
 
@@ -48,7 +50,7 @@ enum QuickAction {
         switch entry.type {
         case .url:
             guard isOpenable(trimmed) else { return false }
-            if let url = URL(string: trimmed), url.scheme != nil {
+            if let url = URL(string: trimmed), let scheme = url.scheme, browserSchemes.contains(scheme) {
                 return NSWorkspace.shared.open(url)
             }
             let prefixed = trimmed.hasPrefix("//") ? "https:" + trimmed : "https://" + trimmed
