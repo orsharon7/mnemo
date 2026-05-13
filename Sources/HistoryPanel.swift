@@ -93,7 +93,8 @@ struct HistoryPanel: View {
                         onCommandNumber: pickNumbered,
                         onSpace: togglePreview,
                         onPin: pinSelection,
-                        onDelete: deleteSelection)
+                        onDelete: deleteSelection,
+                        onOpen: openSelection)
                 .frame(height: 26)
                 .padding(.horizontal, 10)
                 .padding(.vertical, 5)
@@ -161,6 +162,9 @@ struct HistoryPanel: View {
                 Text("␣ preview").foregroundStyle(.secondary)
                 Text("⌘P pin").foregroundStyle(.secondary)
                 Text("⌫ delete").foregroundStyle(.secondary)
+                if let action = quickActionLabel {
+                    Text(action).foregroundStyle(.secondary)
+                }
                 Text("⌘1–9 quick").foregroundStyle(.secondary)
                 Text("/url /json /pin /code /email /text /multiline").foregroundStyle(.tertiary)
                 Spacer()
@@ -239,6 +243,23 @@ struct HistoryPanel: View {
         store.deleteEntry(entry)
         // Keep selection anchored near where it was.
         selectionIndex = max(0, min(selectionIndex, filtered.count - 2))
+    }
+
+    /// Footer hint for the contextual ⌘O quick action, if the selected entry has one.
+    private var quickActionLabel: String? {
+        guard !filtered.isEmpty, selectionIndex < filtered.count else { return nil }
+        return QuickAction.label(for: filtered[selectionIndex])
+    }
+
+    private func openSelection() {
+        guard !filtered.isEmpty, selectionIndex < filtered.count else { return }
+        let entry = filtered[selectionIndex]
+        if QuickAction.perform(for: entry) {
+            store.useEntry(entry)
+            onDismiss()
+        } else if entry.type == .json {
+            previewing = entry
+        }
     }
 
     private func scrollToTop(proxy: ScrollViewProxy) {
@@ -411,6 +432,7 @@ struct SearchField: NSViewRepresentable {
     var onSpace: () -> Void
     var onPin: () -> Void
     var onDelete: () -> Void
+    var onOpen: () -> Void
 
     func makeCoordinator() -> Coordinator { Coordinator(self) }
 
@@ -512,6 +534,10 @@ struct SearchField: NSViewRepresentable {
             if hasCmd, onlyCmd, let chars = event.charactersIgnoringModifiers {
                 if chars.lowercased() == "p" {
                     parent.onPin()
+                    return nil
+                }
+                if chars.lowercased() == "o" {
+                    parent.onOpen()
                     return nil
                 }
                 if let n = Int(chars), n >= 1, n <= 9 {
