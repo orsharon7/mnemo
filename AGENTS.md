@@ -5,22 +5,22 @@ Project instructions for AI coding agents.
 <!-- BEGIN:COPILOT-RULES -->
 ## Coding Guidelines (AI-maintained)
 *Auto-updated by pr-review-reflect — do not edit this section manually.*
-*Last updated: 2026-05-13 from PR #37 review (optimized)*
-
-### Code Quality
-- Remove unused imports and unused callback/closure parameters; prefix intentionally-kept parameters with `_` (e.g. `_query`).
-- Insert separators (`•`, `|`, `/`) only when both adjacent items are present.
-- Keep UI labels, tooltips, comments, and PR descriptions in sync with actual behavior in the same commit.
-- Write inline comments as complete sentences; remove stray fragments.
-- Verify every acceptance criterion before closing a PR.
+*Last updated: 2026-05-13 from PR #38 review (optimized)*
 
 ### Frontend & CSS
 - Set `fetchpriority="high"` on the primary hero image; never `loading="lazy"` on above-the-fold images.
-- Add `@media (prefers-reduced-motion: reduce)` disabling `scroll-behavior: smooth` and reducing transitions/transforms.
+- Add `@media (prefers-reduced-motion: reduce)` that disables `scroll-behavior: smooth` and reduces transitions/transforms.
 - Declare a solid-color fallback before `color-mix()`, container queries, or `:has()`; for `-webkit-text-fill-color: transparent` gradient text, add a non-`color-mix()` fallback gradient first.
 - Use CSS classes for layout/theming; never inline styles; remove unused custom properties.
 - Never use `href="#"`; use relative links (`index.html`, `./`) for subpath-deployed sites.
 - Link download CTAs to `.../releases/latest/download/<asset>`, not an intermediate release page.
+
+### Code Quality
+- Remove unused imports and unused callback/closure parameters; prefix intentionally kept parameters with `_` (e.g. `_query`).
+- Insert separators (`•`, `|`, `/`) only when both adjacent items are present.
+- Keep UI labels, tooltips, comments, and PR descriptions in sync with actual behavior in the same commit.
+- Write inline comments as complete sentences; remove stray fragments.
+- Verify every acceptance criterion before closing a PR.
 
 ### Shell Scripting
 - With `set -e`, handle expected non-zero exits via `if/else` or local `-e` disable; never suppress with `|| true`.
@@ -41,20 +41,20 @@ Project instructions for AI coding agents.
 
 ### Swift
 - **Threading:** Annotate types/methods calling AppKit APIs (`NSWorkspace`, `NSImage`, etc.) with `@MainActor`.
-- **Safety:** Never force-unwrap (`!`); prefer `guard let`, `if let`, or nil-coalescing. Restrict browser-bound URLs to `http`/`https`; reject `file:`, `tel:`, and custom schemes.
-- **URL opening:** Capture and return the `Bool` result of `NSWorkspace.shared.open(_:)`; never ignore it or return `true` unconditionally.
+- **URL opening:** Capture and return the `Bool` from `NSWorkspace.shared.open(_:)`; never ignore it or return `true` unconditionally. Restrict browser URLs to `http`/`https`; reject `file:`, `tel:`, and other schemes. Apply `https://` prefix only when the input has no explicit scheme; return `false`/nil for explicit non-http(s) schemes.
 - **ObjC interop:** Classes used as `NSMenuItem` targets or via `#selector` must inherit from `NSObject`.
-- **Appearance:** Use semantic system colors (`NSColor.controlBackgroundColor`, `.windowBackgroundColor`, `.separatorColor`, etc.); never hard-code `Color(white:)`, `Color(red:green:blue:)`, or literal hex values.
+- **Appearance:** Use semantic system colors (`NSColor.controlBackgroundColor`, `.windowBackgroundColor`, `.separatorColor`, etc.); never hard-code `Color(white:)`, `Color(red:green:blue:)`, or hex values.
 - **Caching:** Use `NSCache` with a `countLimit`; memoize negative lookups in a separate bounded `Set<Key>` (`dict[key] = nil` removes the entry, not caches a miss).
-- **Numeric safety:** Clamp decoded integer fields immediately after decoding (e.g. `max(1, decoded)`); use overflow-safe arithmetic (`addingReportingOverflow` / `saturatingAdd`) for runtime counters; re-clamp after migration/merge.
-- **Deduplication:** Use SHA256 (CryptoKit) plus `content` equality; on match, update all metadata fields — never only the timestamp. Prefer non-nil over nil when collapsing duplicates.
-- **Data consistency:** Define one explicit merge rule per field; re-sort with the canonical comparator after any merge pass; persist immediately when a load-time migration detects changes. On hash algorithm change, recompute `contentHash` from `content` for all decoded entries in `load()` before deduplication.
-- **Async & state:** Capture lazily-evaluated values into a `let` before `DispatchQueue.main.async`. Declare `NSRegularExpression` as `static let`; observe shared singletons via `@ObservedObject`/`@StateObject`. Reset all ephemeral `@State` (focus, selection, query, scroll) in the panel-opened handler on every show; consolidate sibling `.onReceive` subscriptions into one handler.
-- **Layout:** Use `Color.clear.frame(height:)` or padding for fixed-height gaps — never `Spacer().frame(height:)`. Declare file-private types `private` or `fileprivate`. Gate `makeFirstResponder` in `makeNSView` on the `isFocused` binding; drive focus changes through `updateNSView`.
-- **Display scale:** Use `@Environment(\.displayScale) private var displayScale` in every view computing pixel-aligned sizes; derive `lineWidth` as `1 / displayScale`. Never use `NSScreen.main?.backingScaleFactor` or hard-code `lineWidth: 1`.
+- **Numeric safety:** Clamp decoded integer fields immediately after decoding (e.g. `copyCount = max(1, decoded)`); use overflow-safe arithmetic (`addingReportingOverflow` / `saturatingAdd`) for runtime counters; re-clamp after migration/merge.
+- **Deduplication:** Use SHA256 (CryptoKit) plus `content` equality; on match, update all metadata fields — never only the timestamp. Prefer non-nil over nil when collapsing duplicates. On hash algorithm change, recompute `contentHash` from `content` for all entries in `load()` before deduplication.
+- **Data consistency:** Define one explicit merge rule per field; re-sort with the canonical comparator after any merge pass; persist immediately when a load-time migration detects changes.
+- **Async & state:** Capture lazily-evaluated values into a `let` before `DispatchQueue.main.async`. Declare `NSRegularExpression` as `static let`; observe shared singletons via `@ObservedObject`/`@StateObject`. Reset all ephemeral `@State` (focus, selection, query, scroll) in the panel-opened handler on every show. Consolidate sibling `.onReceive` subscriptions on the same publisher into one handler.
+- **Layout:** Use `Color.clear.frame(height:)` or padding for fixed-height gaps — never `Spacer().frame(height:)`. Declare types used only within one file `private` or `fileprivate`.
+- **Display scale & hairlines:** Declare `@Environment(\.displayScale) private var displayScale` in every SwiftUI view that computes pixel-aligned sizes; derive `lineWidth` as `1 / displayScale`. Never use `NSScreen.main?.backingScaleFactor` or hard-code `lineWidth: 1`.
+- **Force-unwrap:** Never force-unwrap (`!`); prefer `guard let`, `if let`, or nil-coalescing.
+- **Focus management:** Gate `makeFirstResponder` in `makeNSView` on the `isFocused` binding; drive focus changes through `updateNSView`.
 - **Lazy embedding:** Skip embedding if a non-nil vector already exists; compute embeddings off the main thread.
-- **Time & metrics:** Capture `let now = Date()` once per render/refresh pass — never a computed `var`. Use `Calendar` date math (`date(byAdding:)`, `startOfDay`, start-of-month) for range boundaries, never fixed second offsets. Extract a single `startDate(now:)` method per range type and reuse it everywhere. Scope metrics to the selected range (not lifetime counters); compute creation-based metrics (e.g. "capture rate") from `createdAt`, not `lastUsedAt`. Remove properties with hardcoded approximations (e.g. `spanDays = 30`) that diverge from their semantic definition.
-- **Sort passes:** When chaining sort passes (e.g. pinned-first after relevance), document precedence rules and verify combined ordering matches PR descriptions. Eliminate unreachable `switch` arms.
+- **Date ranges & metrics:** Use `Calendar` date math (`date(byAdding:)`, `startOfDay`, start-of-month) for time boundaries — never fixed second offsets. Capture a single `let now = Date()` at the start of each render/refresh pass. Extract one `startDate(now:)` method per range type and reuse it everywhere; eliminate duplicated range-start logic and unreachable `switch` arms. Scope metrics to the selected time range (not lifetime counters); compute creation-based metrics (e.g. "capture rate") from `createdAt`, not `lastUsedAt`. Remove properties with hardcoded approximations (e.g. `spanDays = 30`) that diverge from their semantic definition. Ensure UI labels match the metric actually computed; document sort-pass precedence when multiple passes run in sequence.
 
 ### Search, Text Processing & Python
 - Preprocess indexed content and queries identically (case folding, whitespace normalization); preserve original-cased text for embeddings/display.
