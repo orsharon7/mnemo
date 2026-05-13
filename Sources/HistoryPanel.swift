@@ -242,7 +242,7 @@ struct HistoryPanel: View {
         let entry = filtered[selectionIndex]
         store.deleteEntry(entry)
         // Keep selection anchored near where it was.
-        selectionIndex = max(0, min(selectionIndex, filtered.count - 2))
+        selectionIndex = max(0, min(selectionIndex, filtered.count - 1))
     }
 
     /// Footer hint for the contextual ⌘O quick action, if the selected entry has one.
