@@ -20,7 +20,7 @@ enum StatsRange: String, CaseIterable, Identifiable {
         }
     }
 
-    func contains(_ d: Date, now: Date = Date()) -> Bool {
+    func contains(_ d: Date, now: Date) -> Bool {
         guard let start = startDate(now: now) else { return true }
         return d >= start
     }
@@ -116,7 +116,7 @@ struct StatsView: View {
         HStack(spacing: 12) {
             StatCard(label: "Clips", value: "\(filtered.count)")
             StatCard(label: "Capture rate", value: String(format: "%.1f / day", captureRate))
-            StatCard(label: "Pinned", value: "\(filtered.filter { $0.isPinned }.count)")
+            StatCard(label: "Pinned", value: "\(store.entries.filter { $0.isPinned }.count)")
         }
     }
 
