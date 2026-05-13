@@ -4,22 +4,26 @@ import AppKit
 /// Type-aware "open" action triggered by ⌘O on the selected clip.
 enum QuickAction {
 
+    /// Returns true when `trimmed` is directly openable as-is, or can be opened
+    /// with an https:// prefix. Protocol-relative strings (`//...`) are treated
+    /// as https-prefixable and therefore openable.
     private static func isOpenable(_ trimmed: String) -> Bool {
-        if let url = URL(string: trimmed),
-           let scheme = url.scheme?.lowercased(),
-           scheme == "http" || scheme == "https" {
+        // Already has an explicit scheme (http, https, ftp, file, mailto, …) — openable directly.
+        if let url = URL(string: trimmed), url.scheme != nil {
             return true
         }
-        // RFC-3986 scheme: letter followed by letters/digits/+/-/. then colon.
-        // Catches mailto:, file:, tel:, ftp:, and // protocol-relative strings.
+        // Protocol-relative (//example.com) — will be prefixed with https:.
+        if trimmed.hasPrefix("//") {
+            return URL(string: "https:" + trimmed) != nil
+        }
         // Exception: host:port patterns like localhost:3000 or example.com:8080
-        // should still fall through to the https fallback.
+        // should still fall through to the https fallback (not treated as explicit scheme).
         let isHostPort = trimmed.range(of: #"^[a-zA-Z0-9][a-zA-Z0-9.\-]*:[0-9]+"#,
                                        options: .regularExpression) != nil
-        let hasExplicitScheme = !isHostPort && (trimmed.hasPrefix("//") ||
+        let hasExplicitScheme = !isHostPort &&
             trimmed.range(of: #"^[a-zA-Z][a-zA-Z0-9+\-.]*:"#,
-                          options: .regularExpression) != nil)
-        if hasExplicitScheme { return false }
+                          options: .regularExpression) != nil
+        if hasExplicitScheme { return true }
         return URL(string: "https://" + trimmed) != nil
     }
 
@@ -43,18 +47,20 @@ enum QuickAction {
         let trimmed = entry.content.trimmingCharacters(in: .whitespacesAndNewlines)
         switch entry.type {
         case .url:
-            if let url = URL(string: trimmed),
-               let scheme = url.scheme?.lowercased(),
-               scheme == "http" || scheme == "https" {
+            guard isOpenable(trimmed) else { return false }
+            if let url = URL(string: trimmed), url.scheme != nil {
                 return NSWorkspace.shared.open(url)
             }
-            guard isOpenable(trimmed) else { return false }
-            if let url = URL(string: "https://" + trimmed) {
+            let prefixed = trimmed.hasPrefix("//") ? "https:" + trimmed : "https://" + trimmed
+            if let url = URL(string: prefixed) {
                 return NSWorkspace.shared.open(url)
             }
             return false
         case .email:
-            if let url = URL(string: "mailto:" + trimmed) {
+            var components = URLComponents()
+            components.scheme = "mailto"
+            components.path = trimmed
+            if let url = components.url {
                 return NSWorkspace.shared.open(url)
             }
             return false
