@@ -5,7 +5,7 @@ Project instructions for AI coding agents.
 <!-- BEGIN:COPILOT-RULES -->
 ## Coding Guidelines (AI-maintained)
 *Auto-updated by pr-review-reflect — do not edit this section manually.*
-*Last updated: 2026-05-13 from PR #38 review (optimized)*
+*Last updated: 2026-05-13 from PR #36 review*
 
 ### Code Quality
 - Remove unused imports and unused callback/closure parameters; prefix intentionally-kept parameters with `_` (e.g. `_query`).
@@ -53,7 +53,7 @@ Project instructions for AI coding agents.
 - **Safety:** Never force-unwrap (`!`); prefer `guard let`, `if let`, or nil-coalescing.
 - **Focus:** Gate `makeFirstResponder` in `makeNSView` on the `isFocused` binding; drive focus changes through `updateNSView`.
 - **Embeddings:** Skip embedding if a non-nil vector already exists; compute embeddings off the main thread.
-- **Date ranges & metrics:** Use `Calendar` date math (`date(byAdding:)`, `startOfDay`, start-of-month) — never fixed second offsets or `timeIntervalSince(...) / 86400`. Capture a single `let now = Date()` per render/refresh pass. Extract one `startDate(now:)` per range type and reuse it everywhere. Scope metrics to the selected time range; compute creation-based metrics from `createdAt`, not `lastUsedAt`. Keep UI labels in sync with the metric actually computed; document sort-pass precedence.
+- **Date ranges & metrics:** Use `Calendar` date math (`date(byAdding:)`, `startOfDay`, start-of-month) — never fixed second offsets or `timeIntervalSince(...) / 86400`. Capture a single `let now = Date()` per render/refresh pass. Extract one `startDate(now:)` per range type and reuse it everywhere. Scope metrics to the selected time range; compute creation-based metrics from `createdAt`, not `lastUsedAt`. Keep UI labels in sync with the metric actually computed; document sort-pass precedence. For inclusive day counts, apply `startOfDay` to both endpoints then add 1 — `Calendar.dateComponents([.day], from: oldest, to: now).day` counts day boundaries crossed (off by 1), inflating per-day rates.
 - **Accessibility:** Mark decorative per-element chart/heatmap visuals `.accessibilityHidden(true)`; expose a single `accessibilityLabel`/`accessibilityValue` on the container.
 
 ### Search, Text Processing & Python
