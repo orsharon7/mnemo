@@ -43,13 +43,20 @@ struct StatsView: View {
     private var captureRate: Double {
         let span: Double
         let capturedInRange: Int
+        let cal = Calendar.current
         if range == .allTime {
             guard let oldest = store.entries.map({ $0.createdAt }).min() else { return 0 }
-            span = max(1, now.timeIntervalSince(oldest) / 86400)
+            let days = cal.dateComponents([.day], from: oldest, to: now).day ?? 0
+            span = max(1, Double(days))
             capturedInRange = store.entries.count
+        } else if range == .week {
+            span = 7
+            guard let rangeStart = range.startDate(now: now) else { return 0 }
+            capturedInRange = store.entries.filter { $0.createdAt >= rangeStart }.count
         } else {
             guard let rangeStart = range.startDate(now: now) else { return 0 }
-            span = max(1, now.timeIntervalSince(rangeStart) / 86400)
+            let days = cal.dateComponents([.day], from: rangeStart, to: now).day ?? 0
+            span = max(1, Double(days))
             capturedInRange = store.entries.filter { $0.createdAt >= rangeStart }.count
         }
         return Double(capturedInRange) / span
@@ -111,12 +118,15 @@ struct StatsView: View {
 
     private var heatmapSection: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("Activity by hour")
+            Text("Clips last used by hour")
                 .font(.system(size: 13, weight: .semibold))
                 .foregroundStyle(.secondary)
 
             let buckets = hourHistogram
             let peak = max(1, buckets.max() ?? 1)
+
+            let peakHour = buckets.enumerated().max(by: { $0.element < $1.element })?.offset ?? 0
+            let totalClips = buckets.reduce(0, +)
 
             HStack(alignment: .bottom, spacing: 3) {
                 ForEach(0..<24, id: \.self) { h in
@@ -134,9 +144,13 @@ struct StatsView: View {
                         }
                     }
                     .frame(maxWidth: .infinity)
+                    .accessibilityHidden(true)
                 }
             }
             .frame(height: 100)
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel("Clips last used by hour chart")
+            .accessibilityValue("Peak hour: \(peakHour):00, total clips: \(totalClips)")
         }
     }
 
