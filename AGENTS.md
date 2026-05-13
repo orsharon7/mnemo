@@ -5,7 +5,7 @@ Project instructions for AI coding agents.
 <!-- BEGIN:COPILOT-RULES -->
 ## Coding Guidelines (AI-maintained)
 *Auto-updated by pr-review-reflect — do not edit this section manually.*
-*Last updated: 2026-05-13 from PR #38 review*
+*Last updated: 2026-05-13 from PR #36 review*
 
 ### Code Quality
 - Remove unused imports and unused callback/closure parameters; prefix intentionally-kept parameters with `_`.
@@ -62,7 +62,8 @@ Project instructions for AI coding agents.
 - **Force-unwrap:** Never force-unwrap (`!`); prefer `guard let`, `if let`, or nil-coalescing.
 - **Focus management:** Gate `makeFirstResponder` in `makeNSView` on the `isFocused` binding; drive focus changes through `updateNSView`.
 - **Lazy embedding:** Skip embedding if a non-nil vector already exists; compute embeddings off the main thread.
-- **Date ranges & metrics:** Use `Calendar` date math (`date(byAdding:)`, `startOfDay`, start-of-month) for time boundaries — never fixed second offsets. Capture a single `let now = Date()` at the start of each render/refresh pass. Extract one `startDate(now:)` method per range type and reuse it everywhere; eliminate duplicated range-start logic and unreachable `switch` arms. Scope metrics to the selected time range (not lifetime counters); compute creation-based metrics (e.g. "capture rate") from `createdAt`, not `lastUsedAt`. Remove properties with hardcoded approximations (e.g. `spanDays = 30`) that diverge from their semantic definition. Ensure UI labels match the metric actually computed; document sort-pass precedence when multiple passes run in sequence.
+- **Date ranges & metrics:** Use `Calendar` date math (`date(byAdding:)`, `startOfDay`, start-of-month) for time boundaries — never fixed second offsets. Compute day spans via `Calendar` day differences (or use a constant like `7` for a `.week` range) — never `timeIntervalSince(...) / 86400`, which is skewed by DST transitions. Capture a single `let now = Date()` at the start of each render/refresh pass. Extract one `startDate(now:)` method per range type and reuse it everywhere; eliminate duplicated range-start logic and unreachable `switch` arms. Scope metrics to the selected time range (not lifetime counters); compute creation-based metrics (e.g. "capture rate") from `createdAt`, not `lastUsedAt`. Remove properties with hardcoded approximations (e.g. `spanDays = 30`) that diverge from their semantic definition. Ensure UI labels match the metric actually computed; document sort-pass precedence when multiple passes run in sequence.
+- **Accessibility:** Hide decorative per-element visuals in charts/heatmaps from accessibility (`.accessibilityHidden(true)`) and expose a single combined `accessibilityLabel`/`accessibilityValue` on the container (e.g. peak hour and total count); never leave repeated `Rectangle`/`Text` elements as individual VoiceOver targets.
 
 ### Search, Text Processing & Python
 - Preprocess indexed content and queries identically (case folding, whitespace normalization); preserve original-cased text for embeddings/display.
