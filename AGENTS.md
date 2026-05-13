@@ -5,12 +5,12 @@ Project instructions for AI coding agents.
 <!-- BEGIN:COPILOT-RULES -->
 ## Coding Guidelines (AI-maintained)
 *Auto-updated by pr-review-reflect — do not edit this section manually.*
-*Last updated: 2026-05-13 from PR #36 review (optimized)*
+*Last updated: 2026-05-13 from PR #38 review (optimized)*
 
 ### Code Quality
 - Remove unused imports and unused callback/closure parameters; prefix intentionally-kept parameters with `_` (e.g. `_query`).
 - Insert separators (`•`, `|`, `/`) only when both adjacent items are present.
-- Keep UI labels, tooltips, keyboard shortcut hints, comments, and PR descriptions in sync with actual behavior; never show a modifier key not required by the handler.
+- Keep UI labels, tooltips, keyboard shortcut hints, comments, and PR descriptions in sync with actual behavior.
 - Write inline comments as complete sentences; remove stray fragments.
 - Verify every acceptance criterion before closing a PR.
 
@@ -36,24 +36,24 @@ Project instructions for AI coding agents.
 - In branch-switching CI: checkout the branch first, then generate/modify files; `git reset --hard` before switching.
 - Verify cache hits include all required artifacts; use a marker file or `FORCE=1` escape hatch for version-pinned downloads.
 - Verify downloaded tarballs/binaries with a pinned SHA256 checksum; expose a checksum override variable alongside version overrides.
-- Release order: `codesign` (Developer ID) → `xcrun notarytool submit --wait` → `xcrun stapler staple`.
-- **Makefile:** Codesign last — after all bundle mutations. Use order-only prerequisites (`$(TARGET): | dirs`) to prevent `make -j` races; stage `.app` and `/Applications` symlink in a temp dir for `create-dmg`.
+- Release order: `codesign` (Developer ID) → `xcrun notarytool submit --wait` → `xcrun stapler staple`. Codesign last — after all bundle mutations.
+- **Makefile:** Use order-only prerequisites (`$(TARGET): | dirs`) to prevent `make -j` races; stage `.app` and `/Applications` symlink in a temp dir for `create-dmg`.
 
 ### Swift
 - **Safety:** Never force-unwrap (`!`); prefer `guard let`, `if let`, or nil-coalescing.
 - **Threading:** Annotate types/methods calling AppKit APIs (`NSWorkspace`, `NSImage`, etc.) with `@MainActor`.
-- **URL opening:** Capture and return the `Bool` from `NSWorkspace.shared.open(_:)`; accept only `http`/`https`; reject any `<word>:` scheme prefix. Special-case bare `host:port` (digits-only after colon) as `https://`. Share one canonical "is openable" predicate between display and action. Build URLs with user-supplied content via `URLComponents`, never string concatenation.
-- **ObjC interop:** Classes used as `NSMenuItem` targets or via `#selector` must inherit from `NSObject`.
-- **Appearance:** Use semantic system colors (`NSColor.controlBackgroundColor`, `.separatorColor`, etc.); never hard-code `Color(white:)`, RGB, or hex values.
-- **Caching:** Use `NSCache` with a `countLimit`; memoize negative lookups in a separate bounded `Set<Key>` — `dict[key] = nil` removes the entry, not caches a miss.
-- **Numeric safety:** Clamp decoded integers immediately after decoding (e.g. `copyCount = max(1, decoded)`); use overflow-safe arithmetic (`addingReportingOverflow` / `saturatingAdd`) for counters; re-clamp after migration/merge. Clamp post-delete selection to `max(0, min(deletedIndex, newCount - 1))`.
-- **Data & deduplication:** Hash with SHA256 (CryptoKit) plus `content` equality; on match, update all metadata fields, never only the timestamp. On hash algorithm change, recompute `contentHash` from `content` for all entries before deduplication. Define one merge rule per field; re-sort with the canonical comparator after any merge pass; persist immediately on load-time migration.
-- **Async & state:** Capture lazily-evaluated values into `let` before `DispatchQueue.main.async`. Declare `NSRegularExpression` as `static let`. Reset all ephemeral `@State` (focus, selection, query, scroll) in the panel-opened handler. Consolidate sibling `.onReceive` on the same publisher into one handler. Use the `onChange` signature with parameters (`{ _, _ in … }`); never the zero-parameter form.
+- **URL opening:** Capture and return the `Bool` from `NSWorkspace.shared.open(_:)`; never return `true` unconditionally. Accept only `http`/`https`; reject any `<word>:` scheme prefix. Special-case bare `host:port` (digits-only after colon, pre-colon token looks like a hostname/IP/`localhost`) — apply `https://`. Construct URLs with user-supplied content via `URLComponents`, never string concatenation. Share one canonical "is openable as URL" predicate between display and open action.
+- **Appearance:** Use semantic system colors (`NSColor.controlBackgroundColor`, `.separatorColor`, etc.); never hard-code `Color(white:)`, hex, or RGB literals.
+- **Numeric safety:** Clamp decoded integers immediately after decoding (`copyCount = max(1, decoded)`); use overflow-safe arithmetic for runtime counters; re-clamp after migration/merge. Clamp post-delete selection to `max(0, min(deletedIndex, newCount - 1))`.
+- **Data & deduplication:** Hash with SHA256 (CryptoKit) plus `content` equality; on match, update all metadata fields. On hash algorithm change, recompute `contentHash` for all entries in `load()` before dedup. Define one explicit merge rule per field; re-sort with the canonical comparator after any merge pass; persist immediately when a load-time migration detects changes.
+- **Async & state:** Capture lazily-evaluated values into a `let` before `DispatchQueue.main.async`. Declare `NSRegularExpression` as `static let`; observe shared singletons via `@ObservedObject`/`@StateObject`. Reset all ephemeral `@State` (focus, selection, query, scroll) in the panel-opened handler on every show. Consolidate sibling `.onReceive` subscriptions on the same publisher into one handler. Use the SwiftUI `onChange` signature accepting parameters (`{ _, _ in … }`); never use the zero-parameter form.
 - **Layout & display scale:** Use `Color.clear.frame(height:)` or padding for fixed-height gaps — never `Spacer().frame(height:)`. Declare `@Environment(\.displayScale) private var displayScale` in every view computing pixel-aligned sizes; derive `lineWidth` as `1 / displayScale`. Declare file-private types `private` or `fileprivate`.
+- **Caching:** Use `NSCache` with a `countLimit`; memoize negative lookups in a separate bounded `Set<Key>` (`dict[key] = nil` removes the entry, not caches a miss).
+- **Date & metrics:** Use `Calendar` date math (`date(byAdding:)`, `startOfDay`) — never fixed second offsets or `timeIntervalSince(...) / 86400`. Capture `let now = Date()` once per render pass. For inclusive day counts, apply `startOfDay` to both endpoints then add 1. Scope metrics to the selected time range; compute creation metrics from `createdAt`, not `lastUsedAt`; keep UI labels in sync with the metric computed.
+- **Accessibility:** Mark decorative chart/heatmap visuals `.accessibilityHidden(true)`; expose a single `accessibilityLabel`/`accessibilityValue` on the container.
 - **Focus:** Gate `makeFirstResponder` in `makeNSView` on the `isFocused` binding; drive focus changes through `updateNSView`.
 - **Embeddings:** Skip embedding if a non-nil vector already exists; compute embeddings off the main thread.
-- **Date & metrics:** Use `Calendar` date math (`date(byAdding:)`, `startOfDay`) — never fixed second offsets or `timeIntervalSince / 86400`. Capture one `let now = Date()` per render pass; extract one `startDate(now:)` per range type and reuse it. Scope metrics to the selected time range; use `createdAt`, not `lastUsedAt`, for creation-based metrics. For inclusive day counts, apply `startOfDay` to both endpoints then add 1.
-- **Accessibility:** Mark decorative chart/heatmap elements `.accessibilityHidden(true)`; expose one `accessibilityLabel`/`accessibilityValue` on the container.
+- **ObjC interop:** Classes used as `NSMenuItem` targets or via `#selector` must inherit from `NSObject`.
 
 ### Search, Text Processing & Python
 - Preprocess indexed content and queries identically (case folding, whitespace normalization); preserve original-cased text for embeddings/display.
