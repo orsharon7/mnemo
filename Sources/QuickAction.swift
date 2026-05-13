@@ -34,8 +34,10 @@ enum QuickAction {
                scheme == "http" || scheme == "https" {
                 return NSWorkspace.shared.open(url)
             }
-            // Fall back to a https:// prefix for bare hosts that the type detector accepted.
-            if let url = URL(string: "https://" + trimmed) {
+            // Fall back to a https:// prefix only for bare hosts (no explicit scheme).
+            // If the string already has an explicit non-http(s) scheme, treat as no-op.
+            let hasExplicitScheme = trimmed.contains("://") || trimmed.hasPrefix("//")
+            if !hasExplicitScheme, let url = URL(string: "https://" + trimmed) {
                 return NSWorkspace.shared.open(url)
             }
             return false
