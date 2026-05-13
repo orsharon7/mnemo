@@ -5,7 +5,7 @@ Project instructions for AI coding agents.
 <!-- BEGIN:COPILOT-RULES -->
 ## Coding Guidelines (AI-maintained)
 *Auto-updated by pr-review-reflect — do not edit this section manually.*
-*Last updated: 2026-05-13 from PR #38 review*
+*Last updated: 2026-05-13 from PR #37 review*
 
 ### Frontend & CSS
 - Set `fetchpriority="high"` on the primary hero image; never `loading="lazy"` on above-the-fold images.
@@ -16,7 +16,7 @@ Project instructions for AI coding agents.
 - Link download CTAs to `.../releases/latest/download/<asset>`, not an intermediate release page.
 
 ### Code Quality
-- Remove unused imports and unused callback/closure parameters.
+- Remove unused imports and unused callback/closure parameters; when a parameter is intentionally kept for future use, prefix it with `_` (e.g. `_ query`) to suppress the warning without removing the call site.
 - Insert separators (`•`, `|`, `/`) only when both adjacent items are present.
 - Keep UI labels, tooltips, comments, and PR descriptions in sync with actual behavior in the same commit.
 - Write inline comments as complete sentences; remove stray fragments.
@@ -58,6 +58,7 @@ Project instructions for AI coding agents.
 - **Stats & date ranges:** Use `Calendar` date math (`date(byAdding:)`, `startOfDay`, start-of-month) for time range boundaries — never fixed second offsets; avoids DST drift and makes labels like "This Month" mean the calendar month, not a rolling window.
 - **Metric scoping:** When ranking or aggregating items within a selected time range, use a metric scoped to that range (not a lifetime counter); ensure UI labels match the actual metric being computed.
 - **Capture rate:** Compute "capture rate" (or any creation-based metric) from `createdAt` within the range, not `lastUsedAt`; keep the numerator semantics consistent with the metric's name and tooltip.
+- **Sort pass ordering:** When multiple sort passes run in sequence (e.g. pinned-first after relevance ranking), verify their combined effect matches documented priority guarantees; if one pass can override another's ordering, document the precedence rule explicitly and keep PR descriptions accurate.
 
 ### Search, Text Processing & Python
 - Preprocess indexed content and queries identically (case folding, whitespace normalization); preserve original-cased text for embeddings/display.
