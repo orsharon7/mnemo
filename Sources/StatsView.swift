@@ -1,0 +1,215 @@
+import SwiftUI
+import AppKit
+
+enum StatsRange: String, CaseIterable, Identifiable {
+    case week = "This Week"
+    case month = "This Month"
+    case allTime = "All Time"
+
+    var id: String { rawValue }
+
+    func contains(_ d: Date, now: Date = Date()) -> Bool {
+        switch self {
+        case .week:    return d >= now.addingTimeInterval(-7 * 24 * 3600)
+        case .month:   return d >= now.addingTimeInterval(-30 * 24 * 3600)
+        case .allTime: return true
+        }
+    }
+
+    var spanDays: Double {
+        switch self {
+        case .week:    return 7
+        case .month:   return 30
+        case .allTime: return 0   // computed from data
+        }
+    }
+}
+
+struct StatsView: View {
+    @ObservedObject var store: HistoryStore
+    @State private var range: StatsRange = .week
+
+    private var now: Date { Date() }
+
+    private var filtered: [ClipEntry] {
+        store.entries.filter { range.contains($0.lastUsedAt, now: now) }
+    }
+
+    private var topClips: [ClipEntry] {
+        Array(filtered.sorted { $0.copyCount > $1.copyCount }.prefix(10))
+    }
+
+    private var captureRate: Double {
+        let span: Double
+        if range == .allTime {
+            guard let oldest = store.entries.map({ $0.createdAt }).min() else { return 0 }
+            span = max(1, now.timeIntervalSince(oldest) / 86400)
+        } else {
+            span = range.spanDays
+        }
+        return Double(filtered.count) / span
+    }
+
+    /// 24-bucket histogram of `lastUsedAt` hours within the selected range.
+    private var hourHistogram: [Int] {
+        var buckets = Array(repeating: 0, count: 24)
+        let cal = Calendar.current
+        for e in filtered {
+            let h = cal.component(.hour, from: e.lastUsedAt)
+            if h >= 0 && h < 24 { buckets[h] += 1 }
+        }
+        return buckets
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            HStack {
+                Text("Stats")
+                    .font(.system(size: 18, weight: .semibold))
+                Spacer()
+                Picker("", selection: $range) {
+                    ForEach(StatsRange.allCases) { r in
+                        Text(r.rawValue).tag(r)
+                    }
+                }
+                .pickerStyle(.segmented)
+                .frame(width: 320)
+            }
+            .padding(.horizontal, 16)
+            .padding(.top, 14)
+            .padding(.bottom, 10)
+
+            Divider()
+
+            ScrollView {
+                VStack(alignment: .leading, spacing: 18) {
+                    summaryRow
+                    heatmapSection
+                    topClipsSection
+                }
+                .padding(16)
+            }
+        }
+        .frame(minWidth: 560, minHeight: 520)
+    }
+
+    private var summaryRow: some View {
+        HStack(spacing: 12) {
+            StatCard(label: "Clips", value: "\(filtered.count)")
+            StatCard(label: "Capture rate", value: String(format: "%.1f / day", captureRate))
+            StatCard(label: "Pinned", value: "\(filtered.filter { $0.isPinned }.count)")
+        }
+    }
+
+    private var heatmapSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Activity by hour")
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundStyle(.secondary)
+
+            let buckets = hourHistogram
+            let peak = max(1, buckets.max() ?? 1)
+
+            HStack(alignment: .bottom, spacing: 3) {
+                ForEach(0..<24, id: \.self) { h in
+                    VStack(spacing: 2) {
+                        Rectangle()
+                            .fill(Color.accentColor.opacity(buckets[h] == 0 ? 0.10 : 0.25 + 0.65 * Double(buckets[h]) / Double(peak)))
+                            .frame(height: max(4, CGFloat(buckets[h]) / CGFloat(peak) * 80))
+                            .cornerRadius(2)
+                        if h % 3 == 0 {
+                            Text("\(h)")
+                                .font(.system(size: 9, design: .monospaced))
+                                .foregroundStyle(.tertiary)
+                        } else {
+                            Text(" ").font(.system(size: 9))
+                        }
+                    }
+                    .frame(maxWidth: .infinity)
+                }
+            }
+            .frame(height: 100)
+        }
+    }
+
+    private var topClipsSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Most used")
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundStyle(.secondary)
+            if topClips.isEmpty {
+                Text("Nothing yet in this range.")
+                    .font(.system(size: 12))
+                    .foregroundStyle(.tertiary)
+                    .padding(.vertical, 8)
+            } else {
+                VStack(spacing: 0) {
+                    ForEach(Array(topClips.enumerated()), id: \.element.id) { idx, entry in
+                        TopClipRow(rank: idx + 1, entry: entry)
+                        if idx < topClips.count - 1 { Divider() }
+                    }
+                }
+                .background(
+                    RoundedRectangle(cornerRadius: 6)
+                        .fill(Color(NSColor.controlBackgroundColor))
+                )
+            }
+        }
+    }
+}
+
+private struct StatCard: View {
+    let label: String
+    let value: String
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(label)
+                .font(.system(size: 11, weight: .medium))
+                .foregroundStyle(.secondary)
+                .textCase(.uppercase)
+            Text(value)
+                .font(.system(size: 22, weight: .semibold, design: .rounded))
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(12)
+        .background(
+            RoundedRectangle(cornerRadius: 8)
+                .fill(Color(NSColor.controlBackgroundColor))
+        )
+    }
+}
+
+private struct TopClipRow: View {
+    let rank: Int
+    let entry: ClipEntry
+
+    var body: some View {
+        HStack(spacing: 10) {
+            Text("\(rank)")
+                .font(.system(.caption, design: .monospaced))
+                .foregroundStyle(.tertiary)
+                .frame(width: 18, alignment: .trailing)
+            Text(preview(entry.content))
+                .font(.system(size: 12))
+                .lineLimit(1)
+                .truncationMode(.tail)
+                .frame(maxWidth: .infinity, alignment: .leading)
+            Text("\(entry.copyCount)×")
+                .font(.system(size: 11, weight: .semibold, design: .monospaced))
+                .padding(.horizontal, 6).padding(.vertical, 1)
+                .background(
+                    RoundedRectangle(cornerRadius: 3)
+                        .fill(Color.accentColor.opacity(0.15))
+                )
+                .foregroundStyle(Color.accentColor)
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 6)
+    }
+
+    private func preview(_ s: String) -> String {
+        let collapsed = s.replacingOccurrences(of: "\n", with: " ⏎ ")
+        if collapsed.count <= 100 { return collapsed }
+        return String(collapsed.prefix(100)) + "…"
+    }
+}
