@@ -46,7 +46,9 @@ struct StatsView: View {
         let cal = Calendar.current
         if range == .allTime {
             guard let oldest = store.entries.map({ $0.createdAt }).min() else { return 0 }
-            let days = cal.dateComponents([.day], from: oldest, to: now).day ?? 0
+            let startOfOldest = cal.startOfDay(for: oldest)
+            let startOfNow = cal.startOfDay(for: now)
+            let days = (cal.dateComponents([.day], from: startOfOldest, to: startOfNow).day ?? 0) + 1
             span = max(1, Double(days))
             capturedInRange = store.entries.count
         } else if range == .week {
@@ -55,7 +57,9 @@ struct StatsView: View {
             capturedInRange = store.entries.filter { $0.createdAt >= rangeStart }.count
         } else {
             guard let rangeStart = range.startDate(now: now) else { return 0 }
-            let days = cal.dateComponents([.day], from: rangeStart, to: now).day ?? 0
+            let startOfRangeStart = cal.startOfDay(for: rangeStart)
+            let startOfNow = cal.startOfDay(for: now)
+            let days = (cal.dateComponents([.day], from: startOfRangeStart, to: startOfNow).day ?? 0) + 1
             span = max(1, Double(days))
             capturedInRange = store.entries.filter { $0.createdAt >= rangeStart }.count
         }
