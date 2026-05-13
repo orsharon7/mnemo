@@ -5,7 +5,7 @@ Project instructions for AI coding agents.
 <!-- BEGIN:COPILOT-RULES -->
 ## Coding Guidelines (AI-maintained)
 *Auto-updated by pr-review-reflect — do not edit this section manually.*
-*Last updated: 2026-05-13 from PR #35 review (optimized)*
+*Last updated: 2026-05-13 from PR #36 review*
 
 ### Frontend & CSS
 - Set `fetchpriority="high"` on the primary hero image; never `loading="lazy"` on above-the-fold images.
@@ -53,6 +53,9 @@ Project instructions for AI coding agents.
 - **Display scale & hairlines:** Use `@Environment(\.displayScale)` for per-pixel sizing; derive `lineWidth` as `1 / displayScale` for exact 1px Retina strokes. Never use `NSScreen.main?.backingScaleFactor` or hard-code `lineWidth: 1`. Declare `@Environment(\.displayScale) private var displayScale` in every SwiftUI view that computes pixel-aligned sizes before referencing it.
 - **Force-unwrap:** Never force-unwrap (`!`); prefer `guard let`, `if let`, or nil-coalescing.
 - **Focus management:** Gate `makeFirstResponder` in `makeNSView` on the `isFocused` binding; drive focus changes through `updateNSView`.
+- **Stats & date ranges:** Use `Calendar` date math (`date(byAdding:)`, `startOfDay`, start-of-month) for time range boundaries — never fixed second offsets; avoids DST drift and makes labels like "This Month" mean the calendar month, not a rolling window.
+- **Metric scoping:** When ranking or aggregating items within a selected time range, use a metric scoped to that range (not a lifetime counter); ensure UI labels match the actual metric being computed.
+- **Capture rate:** Compute "capture rate" (or any creation-based metric) from `createdAt` within the range, not `lastUsedAt`; keep the numerator semantics consistent with the metric's name and tooltip.
 
 ### Search, Text Processing & Python
 - Preprocess indexed content and queries identically (case folding, whitespace normalization); preserve original-cased text for embeddings/display.
