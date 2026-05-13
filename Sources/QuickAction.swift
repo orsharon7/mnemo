@@ -4,17 +4,27 @@ import AppKit
 /// Type-aware "open" action triggered by ⌘O on the selected clip.
 enum QuickAction {
 
+    private static func isOpenable(_ trimmed: String) -> Bool {
+        if let url = URL(string: trimmed),
+           let scheme = url.scheme?.lowercased(),
+           scheme == "http" || scheme == "https" {
+            return true
+        }
+        // RFC-3986 scheme: letter followed by letters/digits/+/-/. then colon.
+        // Catches mailto:, file:, tel:, ftp:, and // protocol-relative strings.
+        let hasExplicitScheme = trimmed.hasPrefix("//") ||
+            trimmed.range(of: #"^[a-zA-Z][a-zA-Z0-9+\-.]*:"#,
+                          options: .regularExpression) != nil
+        if hasExplicitScheme { return false }
+        return URL(string: "https://" + trimmed) != nil
+    }
+
     /// Footer hint string, or nil if no quick action applies.
     static func label(for entry: ClipEntry) -> String? {
         switch entry.type {
         case .url:
-            // Only show the hint when ⌘O will actually open the URL (http/https or bare host).
-            // For URLs with an explicit non-http(s) scheme (e.g. file:, mailto:) the action
-            // is a no-op, so suppress the label to avoid a misleading hint.
             let trimmed = entry.content.trimmingCharacters(in: .whitespacesAndNewlines)
-            if let url = URL(string: trimmed), let scheme = url.scheme?.lowercased() {
-                guard scheme == "http" || scheme == "https" else { return nil }
-            }
+            guard isOpenable(trimmed) else { return nil }
             return "⌘O open URL"
         case .email: return "⌘O compose"
         case .json:  return "⌘O preview"
@@ -34,10 +44,8 @@ enum QuickAction {
                scheme == "http" || scheme == "https" {
                 return NSWorkspace.shared.open(url)
             }
-            // Fall back to a https:// prefix only for bare hosts (no explicit scheme).
-            // If the string already has an explicit non-http(s) scheme, treat as no-op.
-            let hasExplicitScheme = trimmed.contains("://") || trimmed.hasPrefix("//")
-            if !hasExplicitScheme, let url = URL(string: "https://" + trimmed) {
+            guard isOpenable(trimmed) else { return false }
+            if let url = URL(string: "https://" + trimmed) {
                 return NSWorkspace.shared.open(url)
             }
             return false

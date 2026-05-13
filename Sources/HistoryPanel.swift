@@ -161,7 +161,7 @@ struct HistoryPanel: View {
                 Text("⏎ paste").foregroundStyle(.secondary)
                 Text("␣ preview").foregroundStyle(.secondary)
                 Text("⌘P pin").foregroundStyle(.secondary)
-                Text("⌫ delete").foregroundStyle(.secondary)
+                Text("⌘⌫ delete").foregroundStyle(.secondary)
                 if let action = quickActionLabel {
                     Text(action).foregroundStyle(.secondary)
                 }
