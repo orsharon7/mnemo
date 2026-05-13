@@ -5,7 +5,7 @@ Project instructions for AI coding agents.
 <!-- BEGIN:COPILOT-RULES -->
 ## Coding Guidelines (AI-maintained)
 *Auto-updated by pr-review-reflect — do not edit this section manually.*
-*Last updated: 2026-05-13 from PR #36 review*
+*Last updated: 2026-05-13 from PR #38 review*
 
 ### Code Quality
 - Remove unused imports and unused callback/closure parameters; prefix intentionally-kept parameters with `_`.
@@ -26,6 +26,7 @@ Project instructions for AI coding agents.
 - Remove unused imports and unused callback/closure parameters; prefix intentionally kept parameters with `_` (e.g. `_query`).
 - Insert separators (`•`, `|`, `/`) only when both adjacent items are present.
 - Keep UI labels, tooltips, comments, and PR descriptions in sync with actual behavior in the same commit.
+- Keep keyboard shortcut hints (e.g. `⌘⌫`, `⌃↩`) exactly in sync with the actual key-handling code; never display a modifier that isn't required by the handler.
 - Write inline comments as complete sentences; remove stray fragments.
 - Verify every acceptance criterion before closing a PR.
 
@@ -48,7 +49,7 @@ Project instructions for AI coding agents.
 
 ### Swift
 - **Threading:** Annotate types/methods calling AppKit APIs (`NSWorkspace`, `NSImage`, etc.) with `@MainActor`.
-- **URL opening:** Capture and return the `Bool` from `NSWorkspace.shared.open(_:)`; never ignore it or return `true` unconditionally. Restrict browser URLs to `http`/`https`; reject `file:`, `tel:`, and other schemes. Apply `https://` prefix only when the input has no explicit scheme; return `false`/nil for explicit non-http(s) schemes.
+- **URL opening:** Capture and return the `Bool` from `NSWorkspace.shared.open(_:)`; never ignore it or return `true` unconditionally. Restrict browser URLs to `http`/`https`; reject `file:`, `tel:`, and other schemes. Apply `https://` prefix only when the input has no explicit scheme; return `false`/nil for explicit non-http(s) schemes. Detect non-http(s) schemes by matching any `<word>:` prefix (not just `://` or `//`), so that `mailto:`, `tel:`, and `file:` are rejected even when they lack `//`. Share one canonical "is openable as URL" predicate between label/hint display and the open action — never let them use diverging logic.
 - **ObjC interop:** Classes used as `NSMenuItem` targets or via `#selector` must inherit from `NSObject`.
 - **Appearance:** Use semantic system colors (`NSColor.controlBackgroundColor`, `.windowBackgroundColor`, `.separatorColor`, etc.); never hard-code `Color(white:)`, `Color(red:green:blue:)`, or hex values.
 - **Caching:** Use `NSCache` with a `countLimit`; memoize negative lookups in a separate bounded `Set<Key>` (`dict[key] = nil` removes the entry, not caches a miss).
