@@ -261,13 +261,11 @@ final class HistoryStore: ObservableObject {
             && freeTextTrimmed.count >= 3
 
         if useSemantic, let qv = Embedder.shared.embed(freeTextTrimmed) {
-            return Self.stableSortPinnedFirst(
-                Self.rerankSemantic(needle,
-                                    queryVector: qv,
-                                    pool: pool,
-                                    substringMatches: substring,
-                                    now: Date())
-            )
+            return Self.rerankSemantic(needle,
+                                       queryVector: qv,
+                                       pool: pool,
+                                       substringMatches: substring,
+                                       now: Date())
         }
 
         if !substring.isEmpty || needle.count < 2 {
@@ -286,7 +284,7 @@ final class HistoryStore: ObservableObject {
     /// Recency half-life in days for the recency boost.
     private static let recencyHalfLifeDays: Double = 7
 
-    static func rerankSemantic(_ query: String,
+    static func rerankSemantic(_: String,
                                queryVector: [Float],
                                pool: [ClipEntry],
                                substringMatches: [ClipEntry],
@@ -327,7 +325,7 @@ final class HistoryStore: ObservableObject {
         semanticScored.sort { $0.score > $1.score }
         let rankedSemantic = semanticScored.prefix(semanticTopK).map { $0.entry }
 
-        return rankedSubstring + rankedSemantic
+        return stableSortPinnedFirst(rankedSubstring) + stableSortPinnedFirst(rankedSemantic)
     }
 
 
