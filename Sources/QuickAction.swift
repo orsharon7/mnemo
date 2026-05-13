@@ -9,7 +9,7 @@ enum QuickAction {
         switch entry.type {
         case .url:   return "⌘O open URL"
         case .email: return "⌘O compose"
-        case .json:  return "⌘O format"
+        case .json:  return "⌘O preview"
         default:     return nil
         }
     }
@@ -21,14 +21,14 @@ enum QuickAction {
         let trimmed = entry.content.trimmingCharacters(in: .whitespacesAndNewlines)
         switch entry.type {
         case .url:
-            if let url = URL(string: trimmed), url.scheme != nil {
-                NSWorkspace.shared.open(url)
-                return true
+            if let url = URL(string: trimmed),
+               let scheme = url.scheme?.lowercased(),
+               scheme == "http" || scheme == "https" {
+                return NSWorkspace.shared.open(url)
             }
             // Fall back to a https:// prefix for bare hosts that the type detector accepted.
             if let url = URL(string: "https://" + trimmed) {
-                NSWorkspace.shared.open(url)
-                return true
+                return NSWorkspace.shared.open(url)
             }
             return false
         case .email:
