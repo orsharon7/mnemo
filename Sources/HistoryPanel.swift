@@ -84,7 +84,8 @@ struct HistoryPanel: View {
     }
 
     var body: some View {
-        VStack(spacing: 0) {
+        let filteredEntries = filtered
+        return VStack(spacing: 0) {
             SearchField(text: $query,
                         isFocused: $isSearchFocused,
                         onSubmit: commitSelection,
@@ -119,7 +120,7 @@ struct HistoryPanel: View {
 
             Color.clear.frame(height: 6)
 
-            if filtered.isEmpty {
+            if filteredEntries.isEmpty {
                 VStack {
                     Spacer()
                     Text(store.entries.isEmpty
@@ -132,7 +133,7 @@ struct HistoryPanel: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
                 ScrollViewReader { proxy in
-                    List(Array(filtered.enumerated()), id: \.element.id) { idx, entry in
+                    List(Array(filteredEntries.enumerated()), id: \.element.id) { idx, entry in
                         HistoryRow(entry: entry,
                                    query: query,
                                    index: idx,
@@ -145,8 +146,8 @@ struct HistoryPanel: View {
                     }
                     .listStyle(.plain)
                     .onChange(of: selectionIndex) { _, newValue in
-                        guard newValue < filtered.count else { return }
-                        proxy.scrollTo(filtered[newValue].id, anchor: .center)
+                        guard newValue < filteredEntries.count else { return }
+                        proxy.scrollTo(filteredEntries[newValue].id, anchor: .center)
                     }
                     .onChange(of: scrollToTopToken) { _, _ in
                         scrollToTop(proxy: proxy)
@@ -162,7 +163,7 @@ struct HistoryPanel: View {
                 Text("␣ preview").foregroundStyle(.secondary)
                 Text("⌘P pin").foregroundStyle(.secondary)
                 Text("⌘⌫ delete").foregroundStyle(.secondary)
-                if let action = quickActionLabel {
+                if let action = quickActionLabel(for: filteredEntries) {
                     Text(action).foregroundStyle(.secondary)
                 }
                 Text("⌘1–9 quick").foregroundStyle(.secondary)
@@ -177,7 +178,7 @@ struct HistoryPanel: View {
                     .buttonStyle(.plain)
                     .foregroundStyle(.secondary)
                 }
-                Text("\(filtered.count) of \(store.entries.count)")
+                Text("\(filteredEntries.count) of \(store.entries.count)")
                     .foregroundStyle(.tertiary)
             }
             .font(.caption)
@@ -241,14 +242,13 @@ struct HistoryPanel: View {
         guard !filtered.isEmpty, selectionIndex < filtered.count else { return }
         let entry = filtered[selectionIndex]
         store.deleteEntry(entry)
-        // Keep selection anchored near where it was.
-        selectionIndex = max(0, min(selectionIndex, filtered.count - 1))
+        selectionIndex = max(0, min(selectionIndex, filtered.count - 2))
     }
 
     /// Footer hint for the contextual ⌘O quick action, if the selected entry has one.
-    private var quickActionLabel: String? {
-        guard !filtered.isEmpty, selectionIndex < filtered.count else { return nil }
-        return QuickAction.label(for: filtered[selectionIndex])
+    private func quickActionLabel(for entries: [ClipEntry]) -> String? {
+        guard !entries.isEmpty, selectionIndex < entries.count else { return nil }
+        return QuickAction.label(for: entries[selectionIndex])
     }
 
     private func openSelection() {
