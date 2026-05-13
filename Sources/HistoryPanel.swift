@@ -176,7 +176,7 @@ struct HistoryPanel: View {
                                    isSelected: idx == selectionIndex)
                             .id(entry.id)
                             .contentShape(Rectangle())
-                            .onTapGesture(count: 2) { onPick(entry) }
+                            .onTapGesture(count: 2) { pickEntry(entry) }
                             .onTapGesture { selectionIndex = idx }
                             .listRowInsets(EdgeInsets(top: 2, leading: 6, bottom: 2, trailing: 6))
                     }
@@ -228,7 +228,10 @@ struct HistoryPanel: View {
     private func commitSelection() {
         guard !filtered.isEmpty else { return }
         let idx = min(max(0, selectionIndex), filtered.count - 1)
-        let entry = filtered[idx]
+        pickEntry(filtered[idx])
+    }
+
+    private func pickEntry(_ entry: ClipEntry) {
         if entry.isPinned, SnippetTemplate.hasPlaceholders(entry.content) {
             beginTemplate(for: entry)
             return
@@ -276,7 +279,7 @@ struct HistoryPanel: View {
     private func pickNumbered(_ n: Int) {
         let idx = n - 1
         if idx >= 0 && idx < filtered.count {
-            onPick(filtered[idx])
+            pickEntry(filtered[idx])
         }
     }
 
