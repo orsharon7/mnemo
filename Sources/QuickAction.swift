@@ -7,7 +7,15 @@ enum QuickAction {
     /// Footer hint string, or nil if no quick action applies.
     static func label(for entry: ClipEntry) -> String? {
         switch entry.type {
-        case .url:   return "⌘O open URL"
+        case .url:
+            // Only show the hint when ⌘O will actually open the URL (http/https or bare host).
+            // For URLs with an explicit non-http(s) scheme (e.g. file:, mailto:) the action
+            // is a no-op, so suppress the label to avoid a misleading hint.
+            let trimmed = entry.content.trimmingCharacters(in: .whitespacesAndNewlines)
+            if let url = URL(string: trimmed), let scheme = url.scheme?.lowercased() {
+                guard scheme == "http" || scheme == "https" else { return nil }
+            }
+            return "⌘O open URL"
         case .email: return "⌘O compose"
         case .json:  return "⌘O preview"
         default:     return nil
@@ -33,8 +41,7 @@ enum QuickAction {
             return false
         case .email:
             if let url = URL(string: "mailto:" + trimmed) {
-                NSWorkspace.shared.open(url)
-                return true
+                return NSWorkspace.shared.open(url)
             }
             return false
         case .json, .code, .multiline, .text:
