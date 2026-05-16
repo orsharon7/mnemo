@@ -41,14 +41,15 @@ fi
 
 mkdir -p "$(dirname "$OUTPUT")"
 
-PALETTE="$(mktemp -t mnemo-palette).png"
-trap 'rm -f "$PALETTE"' EXIT
+PALETTE_DIR="$(mktemp -d -t mnemo-palette)"
+PALETTE="${PALETTE_DIR}/palette.png"
+trap 'rm -rf "$PALETTE_DIR"' EXIT
 
 TRIM_ARGS=()
 [[ -n "$START"    ]] && TRIM_ARGS+=(-ss "$START")
 [[ -n "$DURATION" ]] && TRIM_ARGS+=(-t  "$DURATION")
 
-FILTER="fps=${FPS},scale=${WIDTH}:-1:flags=lanczos"
+FILTER="fps=${FPS},scale=${WIDTH}:-1:force_original_aspect_ratio=decrease:flags=lanczos"
 
 echo "→ Generating palette ($WIDTH px @ ${FPS} fps)…"
 ffmpeg -y -hide_banner -loglevel warning \
