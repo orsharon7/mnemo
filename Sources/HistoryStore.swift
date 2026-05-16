@@ -118,14 +118,14 @@ final class HistoryStore: ObservableObject {
 
     private func applyBackfill(_ batch: [(UUID, [Float])]) {
         DispatchQueue.main.async {
-            var dirty = false
+            var updated: [ClipEntry] = []
             for (id, v) in batch {
                 if let idx = self.entries.firstIndex(where: { $0.id == id }), self.entries[idx].vector == nil {
                     self.entries[idx].vector = v
-                    dirty = true
+                    updated.append(self.entries[idx])
                 }
             }
-            if dirty { self.persistAsync() }
+            if !updated.isEmpty { self.persistUpsertMany(updated) }
         }
     }
 
@@ -190,7 +190,7 @@ final class HistoryStore: ObservableObject {
                 if lhs.isPinned != rhs.isPinned { return lhs.isPinned && !rhs.isPinned }
                 return lhs.lastUsedAt > rhs.lastUsedAt
             }
-            self.persistAsync()
+            self.persistUpsert(self.entries[idx])
         }
     }
 
@@ -361,7 +361,7 @@ final class HistoryStore: ObservableObject {
                 var e = self.entries.remove(at: idx)
                 e.lastUsedAt = Date()
                 self.insertSorted(e)
-                self.persistAsync()
+                self.persistUpsert(e)
             }
         }
     }
@@ -369,7 +369,7 @@ final class HistoryStore: ObservableObject {
     func deleteEntry(_ entry: ClipEntry) {
         DispatchQueue.main.async {
             self.entries.removeAll { $0.id == entry.id }
-            self.persistAsync()
+            self.persistDelete(id: entry.id)
         }
     }
 
@@ -416,13 +416,34 @@ final class HistoryStore: ObservableObject {
         guard let sqlite = sqlite else { return }
         queue.async {
             do {
-                // Replace-all in a single transaction keeps SQLite in lock-step with the
-                // in-memory `entries` array (which is the UI source of truth) and matches
-                // the previous JSON semantics. Per-entry diffing can be a follow-up.
                 try sqlite.replaceAll(snapshot)
             } catch {
                 NSLog("Mnemo SQLite persist error: \(error)")
             }
+        }
+    }
+
+    private func persistUpsert(_ entry: ClipEntry) {
+        guard let sqlite = sqlite else { return }
+        queue.async {
+            do { try sqlite.upsert(entry) }
+            catch { NSLog("Mnemo SQLite upsert error: \(error)") }
+        }
+    }
+
+    private func persistUpsertMany(_ entries: [ClipEntry]) {
+        guard let sqlite = sqlite, !entries.isEmpty else { return }
+        queue.async {
+            do { try sqlite.upsertMany(entries) }
+            catch { NSLog("Mnemo SQLite upsertMany error: \(error)") }
+        }
+    }
+
+    private func persistDelete(id: UUID) {
+        guard let sqlite = sqlite else { return }
+        queue.async {
+            do { try sqlite.delete(id: id) }
+            catch { NSLog("Mnemo SQLite delete error: \(error)") }
         }
     }
 
@@ -431,7 +452,9 @@ final class HistoryStore: ObservableObject {
         if let sqlite = sqlite {
             do {
                 var rows = try sqlite.loadAll()
-                if rows.isEmpty, FileManager.default.fileExists(atPath: legacyJSONURL.path) {
+                if rows.isEmpty,
+                   sqlite.getMeta("migrated_from_json_at") == nil,
+                   FileManager.default.fileExists(atPath: legacyJSONURL.path) {
                     // First launch after upgrade — import the legacy JSON, then keep a
                     // .bak copy of it for one version per the migration plan in #15.
                     rows = migrateLegacyJSONIntoSQLite()
@@ -487,7 +510,10 @@ final class HistoryStore: ObservableObject {
     /// Last-resort loader used only when SQLite couldn't be opened. Keeps the app usable
     /// (read-only persistence semantics, since persistAsync is a no-op without SQLite).
     private func loadFromLegacyJSON() {
-        guard let data = try? Data(contentsOf: legacyJSONURL),
+        let bakURL = legacyJSONURL.deletingLastPathComponent()
+            .appendingPathComponent("history.json.bak")
+        let url = FileManager.default.fileExists(atPath: legacyJSONURL.path) ? legacyJSONURL : bakURL
+        guard let data = try? Data(contentsOf: url),
               var decoded = try? JSONDecoder().decode([ClipEntry].self, from: data)
         else { return }
         let sha256Hex = CharacterSet(charactersIn: "0123456789abcdef")

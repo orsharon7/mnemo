@@ -141,9 +141,12 @@ final class SQLiteStore {
         }
         defer { sqlite3_finalize(stmt) }
         var result: [ClipEntry] = []
-        while sqlite3_step(stmt) == SQLITE_ROW {
+        var rc = sqlite3_step(stmt)
+        while rc == SQLITE_ROW {
             if let entry = Self.readEntry(stmt) { result.append(entry) }
+            rc = sqlite3_step(stmt)
         }
+        guard rc == SQLITE_DONE else { throw SQLiteError.step(lastErrorMessage()) }
         return result
     }
 
@@ -194,12 +197,15 @@ final class SQLiteStore {
             throw SQLiteError.prepare(lastErrorMessage())
         }
         defer { sqlite3_finalize(stmt) }
-        _ = query.withCString { sqlite3_bind_text(stmt, 1, $0, -1, Self.SQLITE_TRANSIENT) }
+        bindText(stmt, 1, query)
         sqlite3_bind_int(stmt, 2, Int32(limit))
         var ids: [Int64] = []
-        while sqlite3_step(stmt) == SQLITE_ROW {
+        var rc = sqlite3_step(stmt)
+        while rc == SQLITE_ROW {
             ids.append(sqlite3_column_int64(stmt, 0))
+            rc = sqlite3_step(stmt)
         }
+        guard rc == SQLITE_DONE else { throw SQLiteError.step(lastErrorMessage()) }
         return ids
     }
 
@@ -271,15 +277,15 @@ final class SQLiteStore {
         defer { sqlite3_finalize(stmt) }
 
         _ = entry.id.uuidString.withCString { sqlite3_bind_text(stmt, 1, $0, -1, Self.SQLITE_TRANSIENT) }
-        _ = entry.content.withCString       { sqlite3_bind_text(stmt, 2, $0, -1, Self.SQLITE_TRANSIENT) }
-        _ = entry.contentHash.withCString   { sqlite3_bind_text(stmt, 3, $0, -1, Self.SQLITE_TRANSIENT) }
+        bindText(stmt, 2, entry.content)
+        _ = entry.contentHash.withCString { sqlite3_bind_text(stmt, 3, $0, -1, Self.SQLITE_TRANSIENT) }
         if let b = entry.sourceBundle {
-            _ = b.withCString { sqlite3_bind_text(stmt, 4, $0, -1, Self.SQLITE_TRANSIENT) }
+            bindText(stmt, 4, b)
         } else {
             sqlite3_bind_null(stmt, 4)
         }
         if let n = entry.sourceName {
-            _ = n.withCString { sqlite3_bind_text(stmt, 5, $0, -1, Self.SQLITE_TRANSIENT) }
+            bindText(stmt, 5, n)
         } else {
             sqlite3_bind_null(stmt, 5)
         }
@@ -306,14 +312,12 @@ final class SQLiteStore {
     private static func readEntry(_ stmt: OpaquePointer) -> ClipEntry? {
         guard let idCstr = sqlite3_column_text(stmt, 0),
               let id = UUID(uuidString: String(cString: idCstr)),
-              let contentCstr = sqlite3_column_text(stmt, 1),
-              let hashCstr = sqlite3_column_text(stmt, 2)
+              let content = columnText(stmt, 1),
+              let contentHash = columnText(stmt, 2)
         else { return nil }
 
-        let content      = String(cString: contentCstr)
-        let contentHash  = String(cString: hashCstr)
-        let sourceBundle = sqlite3_column_text(stmt, 3).map { String(cString: $0) }
-        let sourceName   = sqlite3_column_text(stmt, 4).map { String(cString: $0) }
+        let sourceBundle = columnText(stmt, 3)
+        let sourceName   = columnText(stmt, 4)
         let createdAt    = Date(timeIntervalSince1970: sqlite3_column_double(stmt, 5))
         let lastUsedAt   = Date(timeIntervalSince1970: sqlite3_column_double(stmt, 6))
         let truncated    = sqlite3_column_int(stmt, 7) != 0
@@ -350,9 +354,22 @@ final class SQLiteStore {
         let count = data.count / stride
         var out = [Float](repeating: 0, count: count)
         _ = out.withUnsafeMutableBytes { dst in
-            data.copyBytes(to: dst.bindMemory(to: UInt8.self), count: data.count)
+            data.copyBytes(to: dst.bindMemory(to: UInt8.self))
         }
         return out
+    }
+
+    private func bindText(_ stmt: OpaquePointer, _ index: Int32, _ text: String) {
+        _ = text.withCString { ptr in
+            sqlite3_bind_text(stmt, index, ptr, Int32(text.utf8.count), Self.SQLITE_TRANSIENT)
+        }
+    }
+
+    private static func columnText(_ stmt: OpaquePointer, _ index: Int32) -> String? {
+        guard let ptr = sqlite3_column_text(stmt, index) else { return nil }
+        let bytes = Int(sqlite3_column_bytes(stmt, index))
+        return String(bytes: UnsafeBufferPointer(start: ptr, count: bytes), encoding: .utf8)
+            ?? String(cString: ptr)
     }
 
     private func exec(_ sql: String) throws {
