@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 720" role="img" aria-label="Mnemo panel placeholder">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#1c1f24"/>
+      <stop offset="1" stop-color="#0f1115"/>
+    </linearGradient>
+    <linearGradient id="panel" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#2a2d33" stop-opacity="0.92"/>
+      <stop offset="1" stop-color="#1f2227" stop-opacity="0.92"/>
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="720" fill="url(#bg)"/>
+  <g font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif" fill="#e7e9ee">
+    <rect x="240" y="120" width="720" height="480" rx="14" fill="url(#panel)" stroke="#3a3d44" stroke-width="1"/>
+    <rect x="264" y="148" width="672" height="40" rx="8" fill="#15171b" stroke="#3a3d44"/>
+    <text x="280" y="174" font-size="16" fill="#9aa0aa">Search clipboard…   /url  /json  /pin</text>
+
+    <g font-size="14">
+      <rect x="264" y="208" width="672" height="56" rx="8" fill="#3b6cf6" opacity="0.18"/>
+      <text x="280" y="232" font-weight="600">https://github.com/orsharon7/mnemo</text>
+      <text x="280" y="252" fill="#9aa0aa">URL  •  Safari  •  3 min ago  •  ⌘1</text>
+
+      <rect x="264" y="276" width="672" height="56" rx="8" fill="#222530"/>
+      <text x="280" y="300">{ "user": "or", "tier": "pro" }</text>
+      <text x="280" y="320" fill="#9aa0aa">JSON  •  Cursor  •  12 min ago  •  ⌘2</text>
+
+      <rect x="264" y="344" width="672" height="56" rx="8" fill="#222530"/>
+      <text x="280" y="368">git rebase --continue</text>
+      <text x="280" y="388" fill="#9aa0aa">Code  •  Terminal  •  1 hr ago  •  📌 ⌘3</text>
+
+      <rect x="264" y="412" width="672" height="56" rx="8" fill="#222530"/>
+      <text x="280" y="436">or@example.com</text>
+      <text x="280" y="456" fill="#9aa0aa">Email  •  Mail  •  Yesterday  •  ⌘4</text>
+    </g>
+
+    <text x="264" y="558" font-size="12" fill="#6e7480">⏎ paste · ↑↓ navigate · ⌘P pin · Space preview · Esc dismiss</text>
+    <text x="600" y="664" text-anchor="middle" font-size="14" fill="#6e7480">
+      Hero placeholder — replace with docs/screenshots/panel-hero.png
+    </text>
+  </g>
+</svg>

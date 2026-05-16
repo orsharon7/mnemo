@@ -2,6 +2,16 @@
 
 A tiny native macOS clipboard history manager. Lives in the menu bar, captures every copy in the background, and lets you summon a search-and-paste panel with a global hotkey — the Alfred clipboard experience as a standalone, local-only app.
 
+<p align="center">
+  <img src="docs/screenshots/panel-hero.svg" alt="Mnemo search panel" width="720">
+</p>
+
+<p align="center">
+  <img src="docs/screenshots/demo.svg" alt="Mnemo demo: ⌥⌘V → search → ⏎ to paste" width="720">
+</p>
+
+> The hero image and demo above are SVG placeholders — see [`docs/screenshots/`](docs/screenshots/) for the recording recipe and `scripts/make-readme-gif.sh` for the ffmpeg pipeline that produces the optimized GIF.
+
 > Full product definition (Problem Framing, JTBD, User Stories, PRD, Architecture, Decisions Log)
 > lives in the Obsidian vault at `~/Documents/Obsidian Vault/Mnemo/`.
 
