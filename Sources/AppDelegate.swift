@@ -11,6 +11,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var watcher: ClipboardWatcher!
     private var hotkey: GlobalHotkey?
     private var prefsWindow: NSWindow?
+    private var statsWindow: NSWindow?
 
     let store = HistoryStore()
     private let settings = Settings.shared
@@ -108,6 +109,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         menu.addItem(.separator())
 
+        let stats = NSMenuItem(title: "Stats…",
+                               action: #selector(openStats),
+                               keyEquivalent: "")
+        stats.target = self
+        menu.addItem(stats)
+
         let prefs = NSMenuItem(title: "Preferences…",
                                action: #selector(openPreferences),
                                keyEquivalent: ",")
@@ -176,6 +183,23 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         alert.messageText = "Mnemo"
         alert.informativeText = "A tiny local clipboard history for macOS.\n\nHotkey: \(settings.hotkey.displayString)\nHistory is stored locally, never uploaded."
         alert.runModal()
+    }
+
+    @objc private func openStats() {
+        if let w = statsWindow {
+            NSApp.activate(ignoringOtherApps: true)
+            w.makeKeyAndOrderFront(nil)
+            return
+        }
+        let host = NSHostingController(rootView: StatsView(store: store))
+        let window = NSWindow(contentViewController: host)
+        window.title = "Mnemo Stats"
+        window.styleMask = [.titled, .closable, .miniaturizable, .resizable]
+        window.isReleasedWhenClosed = false
+        window.center()
+        statsWindow = window
+        NSApp.activate(ignoringOtherApps: true)
+        window.makeKeyAndOrderFront(nil)
     }
 
     @objc private func openPreferences() {

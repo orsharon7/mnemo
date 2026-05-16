@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 360" role="img" aria-label="Mnemo demo placeholder">
+  <rect width="1200" height="360" fill="#0f1115"/>
+  <g font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif" fill="#e7e9ee" text-anchor="middle">
+    <text x="600" y="160" font-size="42" font-weight="600">Mnemo demo</text>
+    <text x="600" y="200" font-size="18" fill="#9aa0aa">⌥⌘V → search → ⏎ to paste</text>
+    <text x="600" y="240" font-size="14" fill="#6e7480">
+      Animated GIF placeholder — replace with docs/screenshots/demo.gif
+    </text>
+  </g>
+</svg>
