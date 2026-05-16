@@ -66,7 +66,11 @@ final class HistoryStore: ObservableObject {
     private var maxEntries: Int = defaultMaxEntries
     private var retentionDays: Int = defaultRetentionDays
 
+    /// Legacy JSON file path; kept around for one-time migration into SQLite.
+    private let legacyJSONURL: URL
+    /// SQLite database path (`history.db`) — primary persistence as of #15.
     private let dbURL: URL
+    private var sqlite: SQLiteStore?
     private let queue = DispatchQueue(label: "mnemo.store", qos: .utility)
     private var settingsObservers: [NSObjectProtocol] = []
 
@@ -76,7 +80,14 @@ final class HistoryStore: ObservableObject {
         let dir = support.appendingPathComponent("Mnemo", isDirectory: true)
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true,
                                                  attributes: [.posixPermissions: 0o700])
-        self.dbURL = dir.appendingPathComponent("history.json")
+        self.legacyJSONURL = dir.appendingPathComponent("history.json")
+        self.dbURL = dir.appendingPathComponent("history.db")
+        do {
+            self.sqlite = try SQLiteStore(url: dbURL)
+        } catch {
+            NSLog("Mnemo SQLite open error: \(error). Falling back to in-memory only.")
+            self.sqlite = nil
+        }
         load()
         backfillVectorsIfNeeded()
     }
@@ -107,14 +118,14 @@ final class HistoryStore: ObservableObject {
 
     private func applyBackfill(_ batch: [(UUID, [Float])]) {
         DispatchQueue.main.async {
-            var dirty = false
+            var updated: [ClipEntry] = []
             for (id, v) in batch {
                 if let idx = self.entries.firstIndex(where: { $0.id == id }), self.entries[idx].vector == nil {
                     self.entries[idx].vector = v
-                    dirty = true
+                    updated.append(self.entries[idx])
                 }
             }
-            if dirty { self.persistAsync() }
+            if !updated.isEmpty { self.persistUpsertMany(updated) }
         }
     }
 
@@ -179,7 +190,7 @@ final class HistoryStore: ObservableObject {
                 if lhs.isPinned != rhs.isPinned { return lhs.isPinned && !rhs.isPinned }
                 return lhs.lastUsedAt > rhs.lastUsedAt
             }
-            self.persistAsync()
+            self.persistUpsert(self.entries[idx])
         }
     }
 
@@ -350,7 +361,7 @@ final class HistoryStore: ObservableObject {
                 var e = self.entries.remove(at: idx)
                 e.lastUsedAt = Date()
                 self.insertSorted(e)
-                self.persistAsync()
+                self.persistUpsert(e)
             }
         }
     }
@@ -358,7 +369,7 @@ final class HistoryStore: ObservableObject {
     func deleteEntry(_ entry: ClipEntry) {
         DispatchQueue.main.async {
             self.entries.removeAll { $0.id == entry.id }
-            self.persistAsync()
+            self.persistDelete(id: entry.id)
         }
     }
 
@@ -402,41 +413,117 @@ final class HistoryStore: ObservableObject {
 
     private func persistAsync() {
         let snapshot = entries
-        let url = dbURL
+        guard let sqlite = sqlite else { return }
         queue.async {
             do {
-                let data = try JSONEncoder().encode(snapshot)
-                try data.write(to: url, options: [.atomic])
-                try? FileManager.default.setAttributes([.posixPermissions: 0o600],
-                                                       ofItemAtPath: url.path)
+                try sqlite.replaceAll(snapshot)
             } catch {
-                NSLog("Mnemo persist error: \(error)")
+                NSLog("Mnemo SQLite persist error: \(error)")
             }
         }
     }
 
+    private func persistUpsert(_ entry: ClipEntry) {
+        guard let sqlite = sqlite else { return }
+        queue.async {
+            do { try sqlite.upsert(entry) }
+            catch { NSLog("Mnemo SQLite upsert error: \(error)") }
+        }
+    }
+
+    private func persistUpsertMany(_ entries: [ClipEntry]) {
+        guard let sqlite = sqlite, !entries.isEmpty else { return }
+        queue.async {
+            do { try sqlite.upsertMany(entries) }
+            catch { NSLog("Mnemo SQLite upsertMany error: \(error)") }
+        }
+    }
+
+    private func persistDelete(id: UUID) {
+        guard let sqlite = sqlite else { return }
+        queue.async {
+            do { try sqlite.delete(id: id) }
+            catch { NSLog("Mnemo SQLite delete error: \(error)") }
+        }
+    }
+
     private func load() {
-        guard let data = try? Data(contentsOf: dbURL) else { return }
-        if var decoded = try? JSONDecoder().decode([ClipEntry].self, from: data) {
-            // Migrate legacy (non-SHA-256) hashes: recompute contentHash from content
-            // so that de-dupe works correctly across app versions.
-            let sha256Prefix = CharacterSet(charactersIn: "0123456789abcdef")
-            var needsMigration = false
-            for i in decoded.indices {
-                let h = decoded[i].contentHash
-                // A SHA-256 hex string is exactly 64 lowercase hex characters.
-                // Legacy FNV-1a hashes are shorter (≤ 16 hex chars).
-                if h.count != 64 || !h.unicodeScalars.allSatisfy({ sha256Prefix.contains($0) }) {
-                    decoded[i].contentHash = sha256(decoded[i].content)
-                    needsMigration = true
+        // Preferred path: read from SQLite.
+        if let sqlite = sqlite {
+            do {
+                var rows = try sqlite.loadAll()
+                if rows.isEmpty,
+                   sqlite.getMeta("migrated_from_json_at") == nil,
+                   FileManager.default.fileExists(atPath: legacyJSONURL.path) {
+                    // First launch after upgrade — import the legacy JSON, then keep a
+                    // .bak copy of it for one version per the migration plan in #15.
+                    rows = migrateLegacyJSONIntoSQLite()
                 }
-            }
-            let collapsed = Self.collapseDuplicates(decoded)
-            self.entries = collapsed
-            if needsMigration || collapsed.count != decoded.count {
-                persistAsync()
+                let collapsed = Self.collapseDuplicates(rows)
+                self.entries = collapsed
+                if collapsed.count != rows.count {
+                    // Dedupe trimmed something — push the cleaned set back to SQLite.
+                    persistAsync()
+                }
+                return
+            } catch {
+                NSLog("Mnemo SQLite load error: \(error). Falling back to JSON.")
             }
         }
+        // Fallback: legacy JSON path (used only if SQLite is unavailable, e.g. open failed).
+        loadFromLegacyJSON()
+    }
+
+    /// Reads `history.json` (if present), normalizes it (legacy hash recompute + dedupe),
+    /// writes everything into SQLite in a single transaction, then renames the JSON file
+    /// to `history.json.bak` so the next launch goes through the SQLite-only path.
+    @discardableResult
+    private func migrateLegacyJSONIntoSQLite() -> [ClipEntry] {
+        guard let sqlite = sqlite,
+              let data = try? Data(contentsOf: legacyJSONURL),
+              var decoded = try? JSONDecoder().decode([ClipEntry].self, from: data)
+        else { return [] }
+
+        let sha256Hex = CharacterSet(charactersIn: "0123456789abcdef")
+        for i in decoded.indices {
+            let h = decoded[i].contentHash
+            if h.count != 64 || !h.unicodeScalars.allSatisfy({ sha256Hex.contains($0) }) {
+                decoded[i].contentHash = sha256(decoded[i].content)
+            }
+        }
+        let collapsed = Self.collapseDuplicates(decoded)
+        do {
+            try sqlite.replaceAll(collapsed)
+            try sqlite.setMeta("migrated_from_json_at", String(Date().timeIntervalSince1970))
+            // Rename rather than delete — keep a backup for one version, per the issue plan.
+            let backup = legacyJSONURL.deletingLastPathComponent()
+                .appendingPathComponent("history.json.bak")
+            try? FileManager.default.removeItem(at: backup)
+            try? FileManager.default.moveItem(at: legacyJSONURL, to: backup)
+            NSLog("Mnemo: migrated \(collapsed.count) entries from history.json to SQLite.")
+        } catch {
+            NSLog("Mnemo JSON→SQLite migration failed: \(error)")
+        }
+        return collapsed
+    }
+
+    /// Last-resort loader used only when SQLite couldn't be opened. Keeps the app usable
+    /// (read-only persistence semantics, since persistAsync is a no-op without SQLite).
+    private func loadFromLegacyJSON() {
+        let bakURL = legacyJSONURL.deletingLastPathComponent()
+            .appendingPathComponent("history.json.bak")
+        let url = FileManager.default.fileExists(atPath: legacyJSONURL.path) ? legacyJSONURL : bakURL
+        guard let data = try? Data(contentsOf: url),
+              var decoded = try? JSONDecoder().decode([ClipEntry].self, from: data)
+        else { return }
+        let sha256Hex = CharacterSet(charactersIn: "0123456789abcdef")
+        for i in decoded.indices {
+            let h = decoded[i].contentHash
+            if h.count != 64 || !h.unicodeScalars.allSatisfy({ sha256Hex.contains($0) }) {
+                decoded[i].contentHash = sha256(decoded[i].content)
+            }
+        }
+        self.entries = Self.collapseDuplicates(decoded)
     }
 
     private static func collapseDuplicates(_ entries: [ClipEntry]) -> [ClipEntry] {
