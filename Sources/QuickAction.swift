@@ -70,8 +70,9 @@ enum QuickAction {
                 return NSWorkspace.shared.open(url)
             }
             return false
-        case .json, .code, .multiline, .text:
+        case .json, .code, .multiline, .text, .image, .file:
             // JSON: caller should open Quick Look preview (rendered with monospaced body).
+            // Image/file: no external "open" action here — QuickLook (space) renders images inline.
             // Other types have no external opener.
             return false
         }
