@@ -87,9 +87,60 @@ final class HistoryStore: ObservableObject {
         } catch {
             NSLog("Mnemo SQLite open error: \(error). Falling back to in-memory only.")
             self.sqlite = nil
+            Self.surfaceSQLiteOpenFailure(dbURL: dbURL, error: error)
         }
         load()
         backfillVectorsIfNeeded()
+    }
+
+    /// Alerts the user that persistence is offline and offers recovery paths.
+    ///
+    /// Runs asynchronously on the main queue so it never blocks HistoryStore.init
+    /// (which is called during AppDelegate.applicationDidFinishLaunching). See #55.
+    private static func surfaceSQLiteOpenFailure(dbURL: URL, error: Error) {
+        DispatchQueue.main.async {
+            let alert = NSAlert()
+            alert.messageText = "Mnemo can't open its clipboard database"
+            alert.informativeText = """
+                Your clipboard history won't be saved between launches until this is resolved.
+
+                Error: \(error.localizedDescription)
+
+                Database path:
+                \(dbURL.path)
+                """
+            alert.alertStyle = .warning
+            alert.addButton(withTitle: "Reveal in Finder")
+            alert.addButton(withTitle: "Reset Database…")
+            alert.addButton(withTitle: "Continue Without Saving")
+            NSApp.activate(ignoringOtherApps: true)
+            switch alert.runModal() {
+            case .alertFirstButtonReturn:
+                NSWorkspace.shared.activateFileViewerSelecting([dbURL])
+            case .alertSecondButtonReturn:
+                confirmAndResetDatabase(dbURL: dbURL)
+            default:
+                break
+            }
+        }
+    }
+
+    private static func confirmAndResetDatabase(dbURL: URL) {
+        let confirm = NSAlert()
+        confirm.messageText = "Reset the clipboard database?"
+        confirm.informativeText = "This deletes the existing database file. Any saved history will be lost. You'll need to relaunch Mnemo."
+        confirm.alertStyle = .critical
+        confirm.addButton(withTitle: "Delete and Quit")
+        confirm.addButton(withTitle: "Cancel")
+        if confirm.runModal() == .alertFirstButtonReturn {
+            let fm = FileManager.default
+            for suffix in ["", "-wal", "-shm"] {
+                let url = dbURL.deletingLastPathComponent()
+                    .appendingPathComponent(dbURL.lastPathComponent + suffix)
+                try? fm.removeItem(at: url)
+            }
+            NSApp.terminate(nil)
+        }
     }
 
     /// Embed entries missing vectors after schema upgrade or model becoming available.
