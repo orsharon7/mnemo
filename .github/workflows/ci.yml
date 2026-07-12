@@ -13,8 +13,8 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  build-and-test:
-    name: Build & Test (macOS)
+  build:
+    name: Build (macOS)
     runs-on: macos-latest
     timeout-minutes: 20
     steps:
@@ -23,9 +23,12 @@ jobs:
         run: swift --version && xcodebuild -version
       - name: Fetch Sparkle framework + tools
         run: bash scripts/fetch-sparkle.sh
-        continue-on-error: true
-      - name: Swift build
-        run: swift build -c debug
-      - name: Swift test
-        run: swift test --parallel
-        continue-on-error: true
+      - name: make (build Mnemo.app)
+        run: make
+      - name: swift test (if Package.swift exists)
+        run: |
+          if [ -f Package.swift ]; then
+            swift test --parallel
+          else
+            echo "No Package.swift yet — test target infra tracked in #52. Skipping."
+          fi
