@@ -7,15 +7,19 @@ enum ClipEntryType: String, Codable {
     case json
     case code
     case multiline
+    case image
+    case file
 
     var badge: String? {
         switch self {
-        case .url: return "URL"
-        case .email: return "EMAIL"
-        case .json: return "JSON"
-        case .code: return "CODE"
+        case .url:       return "URL"
+        case .email:     return "EMAIL"
+        case .json:      return "JSON"
+        case .code:      return "CODE"
         case .multiline: return "TEXT"
-        case .text: return nil
+        case .image:     return "IMAGE"
+        case .file:      return "FILE"
+        case .text:      return nil
         }
     }
 }
@@ -48,7 +52,6 @@ enum TypeDetector {
 
     private static func isEmail(_ s: String) -> Bool {
         guard s.count <= 320, s.contains("@") else { return false }
-        // Re-use NSDataDetector via mailto detection on bare email is unreliable, do a simple shape check.
         let pattern = #"^[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}$"#
         return s.range(of: pattern, options: .regularExpression) != nil
     }
@@ -65,7 +68,6 @@ enum TypeDetector {
         guard lines.count >= 2 else { return false }
         let indented = lines.filter { $0.hasPrefix("  ") || $0.hasPrefix("\t") }.count
         if indented >= 2 { return true }
-        // Common code-y punctuation density on a multiline blob.
         let codeChars = CharacterSet(charactersIn: "{};()=<>")
         var hits = 0
         for u in s.unicodeScalars { if codeChars.contains(u) { hits += 1 } }

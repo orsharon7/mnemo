@@ -17,6 +17,17 @@ struct ClipEntry: Identifiable, Codable, Equatable {
     var vector: [Float]?
     /// Number of times this content has been copied (≥ 1). Shown as a badge when > 1.
     var copyCount: Int
+    // MARK: - Non-text payload fields (schema v2, #43)
+    /// Raw payload bytes for image/file entries. For images: PNG. For files:
+    /// security-scoped bookmark data (falls back to utf8 absolute path).
+    var payloadBytes: Data?
+    /// 64×64 PNG thumbnail for rendering in the row without decoding the full payload.
+    var thumbnail: Data?
+    var width: Int?
+    var height: Int?
+    var byteSize: Int?
+    var filename: String?
+    var uti: String?
 
     init(id: UUID, content: String, contentHash: String,
          sourceBundle: String?, sourceName: String?,
@@ -24,17 +35,27 @@ struct ClipEntry: Identifiable, Codable, Equatable {
          truncated: Bool, isPinned: Bool = false,
          type: ClipEntryType = .text,
          vector: [Float]? = nil,
-         copyCount: Int = 1) {
+         copyCount: Int = 1,
+         payloadBytes: Data? = nil,
+         thumbnail: Data? = nil,
+         width: Int? = nil, height: Int? = nil,
+         byteSize: Int? = nil,
+         filename: String? = nil,
+         uti: String? = nil) {
         self.id = id; self.content = content; self.contentHash = contentHash
         self.sourceBundle = sourceBundle; self.sourceName = sourceName
         self.createdAt = createdAt; self.lastUsedAt = lastUsedAt
         self.truncated = truncated; self.isPinned = isPinned; self.type = type
         self.vector = vector; self.copyCount = copyCount
+        self.payloadBytes = payloadBytes; self.thumbnail = thumbnail
+        self.width = width; self.height = height; self.byteSize = byteSize
+        self.filename = filename; self.uti = uti
     }
 
     private enum CodingKeys: String, CodingKey {
         case id, content, contentHash, sourceBundle, sourceName,
-             createdAt, lastUsedAt, truncated, isPinned, type, vector, copyCount
+             createdAt, lastUsedAt, truncated, isPinned, type, vector, copyCount,
+             payloadBytes, thumbnail, width, height, byteSize, filename, uti
     }
 
     init(from decoder: Decoder) throws {
@@ -51,6 +72,13 @@ struct ClipEntry: Identifiable, Codable, Equatable {
         type = try c.decodeIfPresent(ClipEntryType.self, forKey: .type) ?? .text
         vector = try c.decodeIfPresent([Float].self, forKey: .vector)
         copyCount = max(1, try c.decodeIfPresent(Int.self, forKey: .copyCount) ?? 1)
+        payloadBytes = try c.decodeIfPresent(Data.self, forKey: .payloadBytes)
+        thumbnail = try c.decodeIfPresent(Data.self, forKey: .thumbnail)
+        width = try c.decodeIfPresent(Int.self, forKey: .width)
+        height = try c.decodeIfPresent(Int.self, forKey: .height)
+        byteSize = try c.decodeIfPresent(Int.self, forKey: .byteSize)
+        filename = try c.decodeIfPresent(String.self, forKey: .filename)
+        uti = try c.decodeIfPresent(String.self, forKey: .uti)
     }
 }
 
@@ -223,6 +251,49 @@ final class HistoryStore: ObservableObject {
                                       isPinned: false,
                                       type: detectedType,
                                       vector: vector)
+                self.insertSorted(entry)
+            }
+            self.applyRetention()
+            self.persistAsync()
+        }
+    }
+
+    /// Add an image or file payload captured from the pasteboard. Dedupe key
+    /// is the raw payload SHA-256 (`payload.payloadHash`), stored in
+    /// `contentHash` so the existing dedupe-and-bump path applies.
+    /// See #43.
+    func add(payload: PasteboardCapture.Payload, sourceBundle: String?, sourceName: String?) {
+        let entryType: ClipEntryType = (payload.kind == .image) ? .image : .file
+        let caption = payload.caption
+        let payloadHash = payload.payloadHash
+        DispatchQueue.main.async {
+            if let idx = self.entries.firstIndex(where: { $0.contentHash == payloadHash }) {
+                var existing = self.entries.remove(at: idx)
+                existing.lastUsedAt = Date()
+                let (newCount, overflow) = existing.copyCount.addingReportingOverflow(1)
+                existing.copyCount = overflow ? Int.max : newCount
+                existing.sourceBundle = sourceBundle
+                existing.sourceName = sourceName
+                self.insertSorted(existing)
+            } else {
+                let entry = ClipEntry(id: UUID(),
+                                      content: caption,
+                                      contentHash: payloadHash,
+                                      sourceBundle: sourceBundle,
+                                      sourceName: sourceName,
+                                      createdAt: Date(),
+                                      lastUsedAt: Date(),
+                                      truncated: false,
+                                      isPinned: false,
+                                      type: entryType,
+                                      vector: nil,
+                                      payloadBytes: payload.bytes,
+                                      thumbnail: payload.thumbnail,
+                                      width: payload.width,
+                                      height: payload.height,
+                                      byteSize: payload.byteSize,
+                                      filename: payload.filename,
+                                      uti: payload.uti)
                 self.insertSorted(entry)
             }
             self.applyRetention()

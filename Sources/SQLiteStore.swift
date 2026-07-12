@@ -41,7 +41,7 @@ final class SQLiteStore {
         }
     }
 
-    static let schemaVersion = 1
+    static let schemaVersion = 2
 
     let url: URL
     private var db: OpaquePointer?
@@ -91,9 +91,17 @@ final class SQLiteStore {
                 is_pinned     INTEGER NOT NULL,
                 type          TEXT NOT NULL,
                 vector        BLOB,
-                copy_count    INTEGER NOT NULL DEFAULT 1
+                copy_count    INTEGER NOT NULL DEFAULT 1,
+                payload_bytes BLOB,
+                thumbnail     BLOB,
+                width         INTEGER,
+                height        INTEGER,
+                byte_size     INTEGER,
+                filename      TEXT,
+                uti           TEXT
             );
             """)
+        try migrateAddV2Columns()
         try exec("CREATE INDEX IF NOT EXISTS idx_entries_last_used ON entries(last_used_at DESC);")
         try exec("CREATE INDEX IF NOT EXISTS idx_entries_pinned ON entries(is_pinned, last_used_at DESC);")
         try exec("CREATE INDEX IF NOT EXISTS idx_entries_hash ON entries(content_hash);")
@@ -125,13 +133,49 @@ final class SQLiteStore {
         try setMeta("schema_version", String(Self.schemaVersion))
     }
 
+    /// Idempotently add the schema-v2 columns to `entries` when upgrading from v1.
+    /// `CREATE TABLE IF NOT EXISTS` above uses the v2 shape for fresh installs, so
+    /// this only runs work on existing databases. See #43.
+    private func migrateAddV2Columns() throws {
+        let existing = columnsOfEntriesTable()
+        let additions: [(String, String)] = [
+            ("payload_bytes", "BLOB"),
+            ("thumbnail",     "BLOB"),
+            ("width",         "INTEGER"),
+            ("height",        "INTEGER"),
+            ("byte_size",     "INTEGER"),
+            ("filename",      "TEXT"),
+            ("uti",           "TEXT"),
+        ]
+        for (col, kind) in additions where !existing.contains(col) {
+            try exec("ALTER TABLE entries ADD COLUMN \(col) \(kind);")
+        }
+    }
+
+    /// Returns the set of column names on the `entries` table. Uses PRAGMA
+    /// table_info which is stable across SQLite versions.
+    private func columnsOfEntriesTable() -> Set<String> {
+        var stmt: OpaquePointer?
+        var out: Set<String> = []
+        guard sqlite3_prepare_v2(db, "PRAGMA table_info(entries);", -1, &stmt, nil) == SQLITE_OK,
+              let stmt = stmt else { return out }
+        defer { sqlite3_finalize(stmt) }
+        while sqlite3_step(stmt) == SQLITE_ROW {
+            if let cstr = sqlite3_column_text(stmt, 1) {
+                out.insert(String(cString: cstr))
+            }
+        }
+        return out
+    }
+
     // MARK: - Public CRUD
 
     /// Load every entry, ordered for the UI (pinned first, then most-recent).
     func loadAll() throws -> [ClipEntry] {
         let sql = """
             SELECT id, content, content_hash, source_bundle, source_name,
-                   created_at, last_used_at, truncated, is_pinned, type, vector, copy_count
+                   created_at, last_used_at, truncated, is_pinned, type, vector, copy_count,
+                   payload_bytes, thumbnail, width, height, byte_size, filename, uti
             FROM entries
             ORDER BY is_pinned DESC, last_used_at DESC;
             """
@@ -255,8 +299,9 @@ final class SQLiteStore {
         let sql = """
             INSERT INTO entries
               (id, content, content_hash, source_bundle, source_name,
-               created_at, last_used_at, truncated, is_pinned, type, vector, copy_count)
-            VALUES (?,?,?,?,?,?,?,?,?,?,?,?)
+               created_at, last_used_at, truncated, is_pinned, type, vector, copy_count,
+               payload_bytes, thumbnail, width, height, byte_size, filename, uti)
+            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
             ON CONFLICT(id) DO UPDATE SET
               content       = excluded.content,
               content_hash  = excluded.content_hash,
@@ -268,7 +313,14 @@ final class SQLiteStore {
               is_pinned     = excluded.is_pinned,
               type          = excluded.type,
               vector        = excluded.vector,
-              copy_count    = excluded.copy_count;
+              copy_count    = excluded.copy_count,
+              payload_bytes = excluded.payload_bytes,
+              thumbnail     = excluded.thumbnail,
+              width         = excluded.width,
+              height        = excluded.height,
+              byte_size     = excluded.byte_size,
+              filename      = excluded.filename,
+              uti           = excluded.uti;
             """
         var stmt: OpaquePointer?
         guard sqlite3_prepare_v2(db, sql, -1, &stmt, nil) == SQLITE_OK, let stmt = stmt else {
@@ -304,6 +356,27 @@ final class SQLiteStore {
         }
         sqlite3_bind_int64(stmt, 12, Int64(entry.copyCount))
 
+        // v2 payload columns (#43)
+        if let d = entry.payloadBytes, !d.isEmpty {
+            _ = d.withUnsafeBytes { raw in
+                sqlite3_bind_blob(stmt, 13, raw.baseAddress, Int32(d.count), Self.SQLITE_TRANSIENT)
+            }
+        } else {
+            sqlite3_bind_null(stmt, 13)
+        }
+        if let d = entry.thumbnail, !d.isEmpty {
+            _ = d.withUnsafeBytes { raw in
+                sqlite3_bind_blob(stmt, 14, raw.baseAddress, Int32(d.count), Self.SQLITE_TRANSIENT)
+            }
+        } else {
+            sqlite3_bind_null(stmt, 14)
+        }
+        if let w = entry.width { sqlite3_bind_int64(stmt, 15, Int64(w)) } else { sqlite3_bind_null(stmt, 15) }
+        if let h = entry.height { sqlite3_bind_int64(stmt, 16, Int64(h)) } else { sqlite3_bind_null(stmt, 16) }
+        if let s = entry.byteSize { sqlite3_bind_int64(stmt, 17, Int64(s)) } else { sqlite3_bind_null(stmt, 17) }
+        if let f = entry.filename { bindText(stmt, 18, f) } else { sqlite3_bind_null(stmt, 18) }
+        if let u = entry.uti { bindText(stmt, 19, u) } else { sqlite3_bind_null(stmt, 19) }
+
         guard sqlite3_step(stmt) == SQLITE_DONE else {
             throw SQLiteError.step(lastErrorMessage())
         }
@@ -334,11 +407,32 @@ final class SQLiteStore {
         }
         let copyCount = max(1, Int(sqlite3_column_int64(stmt, 11)))
 
+        // v2 payload columns (#43); nil if column absent (won't happen post-migrate)
+        // or if the row is a text entry that never had a payload.
+        var payloadBytes: Data? = nil
+        if let blob = sqlite3_column_blob(stmt, 12) {
+            let bytes = Int(sqlite3_column_bytes(stmt, 12))
+            if bytes > 0 { payloadBytes = Data(bytes: blob, count: bytes) }
+        }
+        var thumbnail: Data? = nil
+        if let blob = sqlite3_column_blob(stmt, 13) {
+            let bytes = Int(sqlite3_column_bytes(stmt, 13))
+            if bytes > 0 { thumbnail = Data(bytes: blob, count: bytes) }
+        }
+        let width    = sqlite3_column_type(stmt, 14) == SQLITE_NULL ? nil : Int(sqlite3_column_int64(stmt, 14))
+        let height   = sqlite3_column_type(stmt, 15) == SQLITE_NULL ? nil : Int(sqlite3_column_int64(stmt, 15))
+        let byteSize = sqlite3_column_type(stmt, 16) == SQLITE_NULL ? nil : Int(sqlite3_column_int64(stmt, 16))
+        let filename = columnText(stmt, 17)
+        let uti      = columnText(stmt, 18)
+
         return ClipEntry(id: id, content: content, contentHash: contentHash,
                          sourceBundle: sourceBundle, sourceName: sourceName,
                          createdAt: createdAt, lastUsedAt: lastUsedAt,
                          truncated: truncated, isPinned: isPinned, type: type,
-                         vector: vector, copyCount: copyCount)
+                         vector: vector, copyCount: copyCount,
+                         payloadBytes: payloadBytes, thumbnail: thumbnail,
+                         width: width, height: height, byteSize: byteSize,
+                         filename: filename, uti: uti)
     }
 
     static func encodeVector(_ v: [Float]) -> Data {
