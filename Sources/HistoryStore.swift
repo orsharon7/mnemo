@@ -93,19 +93,26 @@ final class HistoryStore: ObservableObject {
     }
 
     /// Embed entries missing vectors after schema upgrade or model becoming available.
+    ///
+    /// Keys work by `contentHash` (not `id`) so a dedupe-merge that happens
+    /// between snapshot and apply still lands the vector on the surviving entry.
+    /// See #51.
     private func backfillVectorsIfNeeded() {
         guard Embedder.shared.isAvailable else { return }
         DispatchQueue.global(qos: .utility).async { [weak self] in
             guard let self = self else { return }
-            // Snapshot ids+contents to avoid mutating the array under us.
-            let snapshot: [(UUID, String)] = DispatchQueue.main.sync {
-                self.entries.filter { $0.vector == nil }.map { ($0.id, $0.content) }
+            // Snapshot (contentHash, content) tuples to avoid mutating the array under us.
+            // Keying by contentHash makes us robust to the dedupe-during-backfill race
+            // (#51): if an entry is remove-then-reinserted with the same hash while
+            // we're embedding, the vector still applies to the surviving row.
+            let snapshot: [(String, String)] = DispatchQueue.main.sync {
+                self.entries.filter { $0.vector == nil }.map { ($0.contentHash, $0.content) }
             }
             guard !snapshot.isEmpty else { return }
-            var batch: [(UUID, [Float])] = []
-            for (id, text) in snapshot {
+            var batch: [(String, [Float])] = []
+            for (hash, text) in snapshot {
                 if let v = Embedder.shared.embed(text) {
-                    batch.append((id, v))
+                    batch.append((hash, v))
                 }
                 if batch.count >= 50 {
                     self.applyBackfill(batch)
@@ -116,11 +123,11 @@ final class HistoryStore: ObservableObject {
         }
     }
 
-    private func applyBackfill(_ batch: [(UUID, [Float])]) {
+    private func applyBackfill(_ batch: [(String, [Float])]) {
         DispatchQueue.main.async {
             var updated: [ClipEntry] = []
-            for (id, v) in batch {
-                if let idx = self.entries.firstIndex(where: { $0.id == id }), self.entries[idx].vector == nil {
+            for (hash, v) in batch {
+                if let idx = self.entries.firstIndex(where: { $0.contentHash == hash && $0.vector == nil }) {
                     self.entries[idx].vector = v
                     updated.append(self.entries[idx])
                 }
