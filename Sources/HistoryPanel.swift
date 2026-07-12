@@ -58,6 +58,8 @@ private extension ClipEntryType {
         case .json:      return Color(red: 0.25, green: 0.75, blue: 0.55)
         case .code:      return Color(red: 0.95, green: 0.6, blue: 0.1)
         case .multiline: return Color(red: 0.55, green: 0.55, blue: 0.6)
+        case .image:     return Color(red: 0.95, green: 0.4, blue: 0.65)
+        case .file:      return Color(red: 0.35, green: 0.7, blue: 0.9)
         case .text:      return .secondary
         }
     }
@@ -359,11 +361,21 @@ struct QuickLookView: View {
             .padding(12)
             Color(NSColor.separatorColor).frame(height: 1 / displayScale)
             ScrollView {
-                Text(entry.content)
-                    .font(.system(.body, design: .monospaced))
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .textSelection(.enabled)
-                    .padding(12)
+                if entry.type == .image,
+                   let bytes = entry.payloadBytes,
+                   let ns = NSImage(data: bytes) {
+                    Image(nsImage: ns)
+                        .resizable()
+                        .aspectRatio(contentMode: .fit)
+                        .frame(maxWidth: .infinity)
+                        .padding(12)
+                } else {
+                    Text(entry.content)
+                        .font(.system(.body, design: .monospaced))
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .textSelection(.enabled)
+                        .padding(12)
+                }
             }
         }
         .frame(width: 640, height: 420)
@@ -386,7 +398,23 @@ struct HistoryRow: View {
                 .cornerRadius(1.5)
                 .padding(.trailing, 7)
 
-            if let badge = entry.type.badge {
+            // Thumbnail slot for image/file rows. Replaces the badge column so
+            // the row height stays consistent. See #43.
+            if let thumb = entry.thumbnail,
+               let ns = NSImage(data: thumb) {
+                Image(nsImage: ns)
+                    .resizable()
+                    .interpolation(.medium)
+                    .aspectRatio(contentMode: .fit)
+                    .frame(width: 36, height: 36)
+                    .clipShape(RoundedRectangle(cornerRadius: 4))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 4)
+                            .strokeBorder(Color.primary.opacity(0.08), lineWidth: 1)
+                    )
+                    .padding(.trailing, 6)
+                    .padding(.top, 2)
+            } else if let badge = entry.type.badge {
                 Text(badge)
                     .font(.system(size: 8, weight: .bold, design: .monospaced))
                     .padding(.horizontal, 4).padding(.vertical, 2)

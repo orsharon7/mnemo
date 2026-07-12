@@ -96,7 +96,37 @@ final class PanelController {
     private func commit(entry: ClipEntry, override: String?) {
         let pb = NSPasteboard.general
         pb.clearContents()
-        pb.setString(override ?? entry.content, forType: .string)
+        // For image/file entries the original bytes ride on payloadBytes.
+        // Restore them to the pasteboard in the correct type so ⌘V pastes
+        // the actual image/file, not the caption. See #43.
+        switch entry.type {
+        case .image:
+            if override == nil, let png = entry.payloadBytes {
+                pb.setData(png, forType: .png)
+                pb.setData(png, forType: .tiff)
+            } else {
+                pb.setString(override ?? entry.content, forType: .string)
+            }
+        case .file:
+            if override == nil, let bytes = entry.payloadBytes {
+                var isStale = false
+                if let url = try? URL(resolvingBookmarkData: bytes,
+                                      options: [.withSecurityScope],
+                                      relativeTo: nil,
+                                      bookmarkDataIsStale: &isStale) {
+                    pb.writeObjects([url as NSURL])
+                } else if let s = String(data: bytes, encoding: .utf8),
+                          let url = URL(string: s) {
+                    pb.writeObjects([url as NSURL])
+                } else {
+                    pb.setString(entry.content, forType: .string)
+                }
+            } else {
+                pb.setString(override ?? entry.content, forType: .string)
+            }
+        default:
+            pb.setString(override ?? entry.content, forType: .string)
+        }
         store.useEntry(entry)
         let shouldAutoPaste = Settings.shared.autoPasteOnEnter
         hide()

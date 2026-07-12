@@ -49,6 +49,16 @@ final class ClipboardWatcher {
             return
         }
 
+        // Non-text payload takes precedence over the string reader — a copied
+        // file from Finder also puts a TIFF preview on the pasteboard, and we
+        // want the row to render as a file, not a text URL. See #43.
+        if let payload = PasteboardCapture.capture(from: pasteboard) {
+            store.add(payload: payload,
+                      sourceBundle: frontApp?.bundleIdentifier,
+                      sourceName: frontApp?.localizedName)
+            return
+        }
+
         guard let text = pasteboard.string(forType: .string), !text.isEmpty else { return }
 
         if Settings.shared.blockLikelySecrets && SecretHeuristic.looksLikeSecret(text) {
